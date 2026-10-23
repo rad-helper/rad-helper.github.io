@@ -83,6 +83,40 @@
       font-size: 0.75rem; color: var(--muted); margin-bottom: 1px; }
   }
 
+  /* Шаблоны заключений */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+  .chips[hidden] { display: none; }
+  .chip { height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 18px;
+    background: var(--card); color: var(--ink); font-size: 0.88rem; cursor: pointer; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  .study { margin: 14px 0 6px; display: flex; flex-direction: column; gap: 10px; }
+  .study[hidden] { display: none; }
+  .picks { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pick { padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+    color: var(--ink); font-size: 0.88rem; cursor: pointer; text-align: left; }
+  .pick[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .study h2 { margin: 0; font-size: 1.1rem; line-height: 1.3; }
+  .study h2 small { display: block; font-size: 0.78rem; font-weight: 400; color: var(--muted); margin-top: 2px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tab { height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px;
+    background: transparent; color: var(--muted); font-size: 0.85rem; cursor: pointer; }
+  .tab[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .sheet { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .sheet-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    padding: 6px 6px 6px 14px; border-bottom: 1px solid var(--line); background: var(--head);
+    font-size: 0.8rem; color: var(--muted); }
+  .copy { height: 38px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--accent);
+    color: var(--bg); font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+  .sheet pre { margin: 0; padding: 12px 14px; font: 0.88rem/1.6 ui-monospace, Menlo, Consolas, monospace;
+    white-space: pre-wrap; word-break: break-word; }
+  .hints-h { margin: 6px 0 -4px; font-size: 0.78rem; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--muted); }
+  .study details.sec { margin: 0; }
+  .toast { position: fixed; left: 50%; transform: translateX(-50%); z-index: 20;
+    bottom: calc(20px + env(safe-area-inset-bottom)); background: var(--ink); color: var(--bg);
+    padding: 10px 16px; border-radius: 10px; font-size: 0.9rem; font-weight: 600; }
+  .toast[hidden] { display: none; }
+
   .empty { text-align: center; color: var(--muted); padding: 24px 0; }
   footer { color: var(--muted); font-size: 0.8rem; padding: 16px 0 max(32px, env(safe-area-inset-bottom)); }
 </style>
@@ -90,23 +124,27 @@
 <body>
 
 <header class="top"><div class="wrap bar">
-  <input id="q" type="search" placeholder="Поиск: узел, HU, Bosniak…" autocomplete="off" enterkeyhint="search" aria-label="Поиск">
+  <input id="q" type="search" placeholder="Что описываем? огк, колено…" autocomplete="off" enterkeyhint="search" aria-label="Поиск">
   <button class="tool" id="all" type="button">Раскрыть всё</button>
 </div></header>
 
 <main class="wrap">
   <h1>Нативная плотность знаний: классификации и пороги для КТ</h1>
   <div id="note"></div>
+  <div class="chips" id="chips"></div>
+  <section class="study" id="study" hidden></section>
   <div id="list"><p class="empty">Загрузка…</p></div>
   <p class="empty" id="none" hidden>Ничего не найдено.</p>
 </main>
 
 <footer class="wrap">Справочный материал для врачей и ординаторов, не клиническая рекомендация.</footer>
+<div class="toast" id="toast" hidden></div>
 
 <script>
 /* =====================================================================
    Менять этот файл не нужно.
    Тексты лежат в папке ru/, порядок разделов — в ru/order.txt.
+   Шаблоны заключений — в папке templates/, порядок — в templates/order.txt.
    Как оформлять тексты — см. README.md в корне репозитория.
    ===================================================================== */
 (function () {
@@ -182,7 +220,9 @@
     return Promise.all(files.map(f => get(f).then(t => ({ f, t }), () => ({ f, t: null }))));
   }).then(items => {
     listEl.innerHTML = "";
+    const parsed = {};
     items.forEach(({ f, t }) => {
+      if (t !== null) parsed[f.replace(/\.md$/i, "")] = t;
       if (t === null) {
         listEl.insertAdjacentHTML("beforeend", '<p class="err">Не найден файл ' + esc(DIR + f) + ' — проверьте имя в order.txt</p>');
         return;
@@ -198,6 +238,7 @@
       listEl.appendChild(sec);
     });
     setup();
+    templates(parsed);
   }).catch(() => {
     listEl.innerHTML = '<p class="err">Не удалось прочитать ru/order.txt.</p>';
   });
@@ -232,6 +273,153 @@
     }));
     const target = location.hash && document.getElementById(location.hash.slice(1));
     if (target && target.tagName === "DETAILS") { target.open = true; target.scrollIntoView(); }
+  }
+
+  /* ---------- Шаблоны заключений ---------- */
+  const TDIR = "templates/";
+  const studyEl = document.getElementById("study");
+  const chipsEl = document.getElementById("chips");
+  const toastEl = document.getElementById("toast");
+  const lower = s => s.toLowerCase().replace(/ё/g, "е");
+  const tokens = s => lower(s).replace(/[^a-zа-я0-9]+/g, " ").split(" ").filter(Boolean);
+  // слова, без которых запрос не меняется: «кт органов грудной клетки» = «грудной клетки»
+  const STOP = new Set(["кт", "мскт", "органов", "орган", "органы", "исследование", "описание", "и", "с", "без"]);
+  const stem = w => w.length > 4 ? w.slice(0, w.length - 2) : w;
+
+  function readTemplate(f, t) {
+    const lines = t.replace(/\r/g, "").split("\n");
+    const cut = lines.findIndex(l => l.trim() === "---");
+    if (cut < 0) return null;
+    const meta = {};
+    lines.slice(0, cut).forEach(l => {
+      const m = l.match(/^\s*([^:#]+):\s*(.*)$/);
+      if (m) meta[lower(m[1].trim())] = m[2].trim();
+    });
+    const text = lines.slice(cut + 1).join("\n").replace(/^\n+|\s+$/g, "");
+    const study = meta["исследование"];
+    if (!study || !text) return null;
+    return {
+      f, study, text,
+      variant: meta["вариант"] || "Основной",
+      modality: meta["модальность"] || "",
+      chip: meta["кнопка"] || "",
+      hints: (meta["подсказки"] || "").split(/[,\s]+/).map(s => s.replace(/\.md$/i, "")).filter(Boolean),
+      words: tokens([study, meta["вариант"], meta["модальность"], meta["кнопка"], meta["слова"]].join(" "))
+    };
+  }
+
+  function score(words, v) {
+    let s = 0;
+    for (const w of words) {
+      const st = stem(w);
+      if (v.words.some(k => k.startsWith(st) || (k.length > 3 && st.startsWith(k)))) s++;
+      else return 0;
+    }
+    return s;
+  }
+
+  function templates(sections) {
+    get_t("order.txt").then(txt => {
+      const files = txt.split("\n").map(s => s.trim()).filter(s => s && !s.startsWith("#"));
+      return Promise.all(files.map(f => get_t(f).then(t => readTemplate(f, t), () => null)));
+    }).then(list => {
+      const variants = list.filter(Boolean);
+      if (!variants.length) return;
+      const studies = [];
+      variants.forEach(v => {
+        let s = studies.find(x => x.title === v.study);
+        if (!s) { s = { title: v.study, modality: v.modality, chip: v.chip, variants: [] }; studies.push(s); }
+        if (!s.chip && v.chip) s.chip = v.chip;
+        s.variants.push(v);
+      });
+      const hintCache = {};
+      const hint = name => {
+        if (sections[name] !== undefined) return Promise.resolve(sections[name]);
+        if (!hintCache[name]) hintCache[name] = get(name + ".md").catch(() => null);
+        return hintCache[name];
+      };
+
+      studies.filter(s => s.chip).forEach(s => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "chip"; b.textContent = s.chip;
+        b.onclick = () => { q.value = s.chip; q.dispatchEvent(new Event("input")); q.focus(); };
+        chipsEl.appendChild(b);
+      });
+
+      let current = null;
+      function show(found, words, keep) {
+        if (!found.length) { studyEl.hidden = true; studyEl.innerHTML = ""; current = null; return; }
+        if (!keep || !found.includes(current)) current = found[0];
+        const s = current;
+        let vi = 0, best = -1;
+        s.variants.forEach((v, i) => { const sc = score(words, v); if (sc > best) { best = sc; vi = i; } });
+        render(found, s, vi);
+      }
+      function render(found, s, vi) {
+        current = s;
+        const v = s.variants[vi];
+        studyEl.hidden = false;
+        studyEl.innerHTML =
+          (found.length > 1 ? '<div class="picks">' + found.map((x, i) =>
+            '<button type="button" class="pick" data-i="' + i + '" aria-pressed="' + (x === s) + '">' + esc(x.title) + "</button>").join("") + "</div>" : "") +
+          "<h2>" + esc(s.title) + (s.modality ? "<small>" + esc(s.modality) + "</small>" : "") + "</h2>" +
+          (s.variants.length > 1 ? '<div class="tabs" role="tablist">' + s.variants.map((x, i) =>
+            '<button type="button" class="tab" role="tab" data-v="' + i + '" aria-selected="' + (i === vi) + '">' + esc(x.variant) + "</button>").join("") + "</div>" : "") +
+          '<div class="sheet"><div class="sheet-bar"><span>Шаблон · ' + esc(v.variant) + '</span>' +
+          '<button type="button" class="copy">Скопировать</button></div><pre></pre></div>' +
+          (v.hints.length ? '<div class="hints-h">Подсказки</div><div class="hints"></div>' : "");
+        studyEl.querySelector("pre").textContent = v.text;
+        studyEl.querySelectorAll(".pick").forEach(b => b.onclick = () => render(found, found[+b.dataset.i], 0));
+        studyEl.querySelectorAll(".tab").forEach(b => b.onclick = () => render(found, s, +b.dataset.v));
+        studyEl.querySelector(".copy").onclick = () => copy(v.text, studyEl.querySelector("pre"));
+        const box = studyEl.querySelector(".hints");
+        if (box) Promise.all(v.hints.map(hint)).then(texts => {
+          if (current !== s || !box.isConnected) return;
+          texts.forEach((t, i) => {
+            const d = document.createElement("details");
+            d.className = "sec";
+            if (t === null) { box.insertAdjacentHTML("beforeend", '<p class="err">Нет подсказки ' + esc(DIR + v.hints[i]) + '.md — проверьте строку «Подсказки:» в ' + esc(TDIR + v.f) + "</p>"); return; }
+            const p = parse(t);
+            d.innerHTML = "<summary><span class=\"t\">" + inline(p.title || v.hints[i]) + "</span>" +
+              (p.sub ? '<span class="s">' + inline(p.sub) + "</span>" : "") + "</summary>" +
+              '<div class="body">' + p.html + "</div>";
+            if (i === 0) d.open = true;
+            box.appendChild(d);
+          });
+        });
+      }
+
+      q.addEventListener("input", () => {
+        const words = tokens(q.value).filter(w => !STOP.has(w));
+        chipsEl.hidden = q.value.trim() !== "";
+        if (!words.length) { show([], words); return; }
+        const found = studies.map(s => ({ s, sc: Math.max(...s.variants.map(v => score(words, v))) }))
+          .filter(x => x.sc > 0).sort((a, b) => b.sc - a.sc).map(x => x.s);
+        show(found, words, true);
+        if (found.length) none.hidden = true;
+      });
+      if (q.value) q.dispatchEvent(new Event("input"));
+    }).catch(() => { /* нет папки templates — сайт работает как раньше */ });
+  }
+  const get_t = f => fetch(TDIR + f, { cache: "no-cache" }).then(r => {
+    if (!r.ok) throw new Error(r.status);
+    return r.text();
+  });
+
+  let toastTimer;
+  function toast(m) {
+    toastEl.textContent = m; toastEl.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastEl.hidden = true; }, 1800);
+  }
+  function copy(text, pre) {
+    const fallback = () => {
+      const r = document.createRange(); r.selectNodeContents(pre);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      try { document.execCommand("copy") ? toast("Скопировано") : toast("Текст выделен — скопируйте вручную"); }
+      catch (e) { toast("Текст выделен — скопируйте вручную"); }
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(() => toast("Скопировано"), fallback);
+    else fallback();
   }
 })();
 </script>

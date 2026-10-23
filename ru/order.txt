@@ -9,3 +9,6 @@ adrenal.md
 nascet.md
 cac.md
 genant.md
+knee-jsw.md
+hip-jsw.md
+kellgren.md

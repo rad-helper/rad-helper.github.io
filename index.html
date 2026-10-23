@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>КТ-шпаргалка</title>
+<meta name="description" content="Классификации и пороги для КТ: справочник для врачей и ординаторов.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f7f7f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121417" media="(prefers-color-scheme: dark)">
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #ffffff; --ink: #1f2328; --muted: #5f6670;
+    --line: #dcdfe3; --head: #eef1f4; --accent: #1d5fa8;
+    --warn-bg: #fff6e0; --warn: #7a5200; --err: #b42318;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121417; --card: #1b1e22; --ink: #e6e8eb; --muted: #9aa3ad;
+      --line: #2e333a; --head: #23272d; --accent: #7fb2ee;
+      --warn-bg: #2e2715; --warn: #e9c46a; --err: #ff8a80;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-padding-top: 76px; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 12px; }
+
+  /* Шапка с поиском — всегда под пальцем */
+  header.top { position: sticky; top: 0; z-index: 10; background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    padding: max(8px, env(safe-area-inset-top)) 0 8px; }
+  .bar { display: flex; gap: 8px; align-items: center; }
+  #q { flex: 1; min-width: 0; height: 44px; padding: 0 12px; font-size: 16px;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
+  .tool { flex: none; height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--card); color: var(--ink); font-size: 0.85rem; cursor: pointer; }
+
+  h1 { margin: 14px 0 0; font-size: 1.05rem; font-weight: 600; }
+  .note { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--warn-bg);
+    color: var(--warn); font-size: 0.85rem; }
+  .note p { margin: 4px 0; }
+  .err { margin: 10px 0; padding: 10px 12px; border-radius: 10px; border: 1px dashed var(--err);
+    color: var(--err); font-size: 0.85rem; }
+
+  /* Разделы-гармошки */
+  details.sec { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin: 10px 0; }
+  details.sec[hidden] { display: none; }
+  details.sec > summary { list-style: none; cursor: pointer; padding: 12px 40px 12px 14px;
+    position: relative; -webkit-tap-highlight-color: transparent; min-height: 48px; }
+  details.sec > summary::-webkit-details-marker { display: none; }
+  details.sec > summary::after { content: ""; position: absolute; right: 16px; top: 20px;
+    width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+    transform: rotate(45deg); transition: transform .15s; }
+  details.sec[open] > summary::after { transform: rotate(-135deg); top: 24px; }
+  .t { display: block; font-size: 1.02rem; font-weight: 600; line-height: 1.3; }
+  .s { display: block; margin-top: 3px; font-size: 0.82rem; color: var(--muted); line-height: 1.35; }
+  .body { padding: 0 14px 12px; border-top: 1px solid var(--line); }
+
+  h3 { margin: 16px 0 6px; font-size: 0.95rem; }
+  p, ul { margin: 8px 0; }
+  ul { padding-left: 1.2em; }
+  li { margin: 3px 0; }
+  code.formula { display: block; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.88rem;
+    background: var(--head); padding: 8px 10px; border-radius: 8px; overflow-x: auto; white-space: nowrap; }
+  code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.9em; }
+  .src { margin-top: 12px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 0.8rem; color: var(--muted); }
+  a { color: var(--accent); }
+
+  /* Таблицы: на телефоне каждая строка — карточка с подписями колонок */
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; margin: 8px 0; }
+  th, td { border: 1px solid var(--line); padding: 7px 9px; text-align: left; vertical-align: top; }
+  th { background: var(--head); font-weight: 600; }
+  td:first-child { font-weight: 600; width: 22%; }
+  @media (max-width: 640px) {
+    table, tbody, tr, td { display: block; width: auto; }
+    thead { display: none; }
+    tr { border: 1px solid var(--line); border-radius: 10px; margin: 8px 0; overflow: hidden; }
+    td { border: 0; border-top: 1px solid var(--line); }
+    td:first-child { border-top: 0; background: var(--head); width: auto; }
+    td:not(:first-child)::before { content: attr(data-label); display: block;
+      font-size: 0.75rem; color: var(--muted); margin-bottom: 1px; }
+  }
+
+  .empty { text-align: center; color: var(--muted); padding: 24px 0; }
+  footer { color: var(--muted); font-size: 0.8rem; padding: 16px 0 max(32px, env(safe-area-inset-bottom)); }
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap bar">
+  <input id="q" type="search" placeholder="Поиск: узел, HU, Bosniak…" autocomplete="off" enterkeyhint="search" aria-label="Поиск">
+  <button class="tool" id="all" type="button">Раскрыть всё</button>
+</div></header>
+
+<main class="wrap">
+  <h1>КТ-шпаргалка: классификации и пороги</h1>
+  <div id="note"></div>
+  <div id="list"><p class="empty">Загрузка…</p></div>
+  <p class="empty" id="none" hidden>Ничего не найдено.</p>
+</main>
+
+<footer class="wrap">Справочный материал для врачей и ординаторов, не клиническая рекомендация.</footer>
+
+<script>
+/* =====================================================================
+   Менять этот файл не нужно.
+   Тексты лежат в папке ru/, порядок разделов — в ru/order.txt.
+   Как оформлять тексты — см. README.md в корне репозитория.
+   ===================================================================== */
+(function () {
+  const DIR = "ru/";
+  const listEl = document.getElementById("list");
+  const noteEl = document.getElementById("note");
+  const q = document.getElementById("q");
+  const allBtn = document.getElementById("all");
+  const none = document.getElementById("none");
+
+  if (location.protocol === "file:") {
+    listEl.innerHTML = '<p class="err">Страница открыта как файл с диска, а браузер не даёт ей читать соседние файлы. ' +
+      'Смотрите опубликованный сайт или откройте репозиторий через github.dev.</p>';
+    return;
+  }
+
+  /* ---------- Мини-разметка: подмножество Markdown ---------- */
+  const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  function inline(s) {
+    s = esc(s).replace(/&lt;br\s*\/?&gt;/gi, "<br>");
+    s = s.replace(/`([^`]+)`/g, "<code>$1</code>");
+    s = s.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+    s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    return s;
+  }
+  const cells = line => line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
+
+  function parse(text) {
+    const lines = text.replace(/\r/g, "").split("\n");
+    const out = { title: "", sub: "", html: "" };
+    let html = "", para = [], list = [];
+    const flushP = () => { if (para.length) { html += "<p>" + inline(para.join(" ")) + "</p>"; para = []; } };
+    const flushL = () => { if (list.length) { html += "<ul>" + list.map(x => "<li>" + inline(x) + "</li>").join("") + "</ul>"; list = []; } };
+    const flush = () => { flushP(); flushL(); };
+
+    for (let i = 0; i < lines.length; i++) {
+      const raw = lines[i], t = raw.trim();
+      if (!t) { flush(); continue; }
+      if (/^# /.test(t) && !out.title) { flush(); out.title = t.slice(2).trim(); continue; }
+      if (/^##+ /.test(t)) { flush(); html += "<h3>" + inline(t.replace(/^##+ /, "")) + "</h3>"; continue; }
+      if (/^> ?/.test(t) && !out.sub && !html) { flush(); out.sub = t.replace(/^> ?/, ""); continue; }
+      if (t.startsWith("|")) {
+        flush();
+        const rows = [];
+        while (i < lines.length && lines[i].trim().startsWith("|")) { rows.push(lines[i].trim()); i++; }
+        i--;
+        const head = cells(rows[0]);
+        const body = rows.slice(1).filter(r => !/^\|?[\s:|-]+\|?$/.test(r)).map(cells);
+        html += "<table><thead><tr>" + head.map(h => "<th>" + inline(h) + "</th>").join("") + "</tr></thead><tbody>" +
+          body.map(r => "<tr>" + head.map((h, k) =>
+            '<td data-label="' + esc(h) + '">' + inline(r[k] || "") + "</td>").join("") + "</tr>").join("") +
+          "</tbody></table>";
+        continue;
+      }
+      if (/^[-*] /.test(t)) { flushP(); list.push(t.slice(2)); continue; }
+      if (/^`[^`]+`$/.test(t)) { flush(); html += '<code class="formula">' + esc(t.slice(1, -1)) + "</code>"; continue; }
+      if (/^Источник:/.test(t)) { flush(); html += '<p class="src">' + inline(t) + "</p>"; continue; }
+      flushL(); para.push(t);
+    }
+    flush();
+    out.html = html;
+    return out;
+  }
+
+  /* ---------- Загрузка ---------- */
+  const get = f => fetch(DIR + f, { cache: "no-cache" }).then(r => {
+    if (!r.ok) throw new Error(r.status);
+    return r.text();
+  });
+
+  get("order.txt").then(txt => {
+    const files = txt.split("\n").map(s => s.trim()).filter(s => s && !s.startsWith("#"));
+    return Promise.all(files.map(f => get(f).then(t => ({ f, t }), () => ({ f, t: null }))));
+  }).then(items => {
+    listEl.innerHTML = "";
+    items.forEach(({ f, t }) => {
+      if (t === null) {
+        listEl.insertAdjacentHTML("beforeend", '<p class="err">Не найден файл ' + esc(DIR + f) + ' — проверьте имя в order.txt</p>');
+        return;
+      }
+      if (f === "about.md") { noteEl.innerHTML = '<div class="note">' + parse(t).html + "</div>"; return; }
+      const d = parse(t);
+      const sec = document.createElement("details");
+      sec.className = "sec";
+      sec.id = f.replace(/\.md$/i, "");
+      sec.innerHTML = "<summary><span class=\"t\">" + inline(d.title || f) + "</span>" +
+        (d.sub ? '<span class="s">' + inline(d.sub) + "</span>" : "") + "</summary>" +
+        '<div class="body">' + d.html + "</div>";
+      listEl.appendChild(sec);
+    });
+    setup();
+  }).catch(() => {
+    listEl.innerHTML = '<p class="err">Не удалось прочитать ru/order.txt.</p>';
+  });
+
+  /* ---------- Поиск, «раскрыть всё», ссылки на раздел ---------- */
+  function setup() {
+    const secs = Array.from(document.querySelectorAll("details.sec"));
+    const norm = s => s.toLowerCase().replace(/ё/g, "е");
+    const texts = secs.map(s => norm(s.textContent));
+
+    q.addEventListener("input", () => {
+      const words = norm(q.value).split(/\s+/).filter(Boolean);
+      let shown = 0;
+      secs.forEach((s, i) => {
+        const ok = words.every(w => texts[i].includes(w));
+        s.hidden = !ok;
+        s.open = ok && words.length > 0;      // найденное — сразу раскрыто
+        if (ok) shown++;
+      });
+      none.hidden = shown > 0;
+    });
+
+    allBtn.addEventListener("click", () => {
+      const open = !secs.every(s => s.open || s.hidden);
+      secs.forEach(s => { if (!s.hidden) s.open = open; });
+      allBtn.textContent = open ? "Свернуть всё" : "Раскрыть всё";
+    });
+
+    // открытый раздел попадает в адрес — ссылкой можно поделиться
+    secs.forEach(s => s.addEventListener("toggle", () => {
+      if (s.open && !q.value) history.replaceState(null, "", "#" + s.id);
+    }));
+    const target = location.hash && document.getElementById(location.hash.slice(1));
+    if (target && target.tagName === "DETAILS") { target.open = true; target.scrollIntoView(); }
+  }
+})();
+</script>
+</body>
+</html>

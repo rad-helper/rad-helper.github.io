@@ -122,16 +122,21 @@
     box-shadow: 0 2px 12px rgba(0, 0, 0, .06); }
   body.home #q:focus { outline: none; border-color: var(--accent); }
   body.home main { display: none; }
+
+  /* Название — только на пустой главной, после ввода запроса прячется */
+  .brand { display: none; }
+  body.home .brand { display: block; margin: 0 0 16px; padding: 0 12px; text-align: center;
+    font-size: 1.6rem; font-weight: 700; }
   body.home footer { position: fixed; left: 0; right: 0; bottom: 0; text-align: center; font-size: 0.72rem; }
 </style>
 </head>
 <body>
 <script>if (!location.hash) document.body.classList.add("home");</script>
 
-    <header class="top">
-  <h1 ...>Помощник рентгенолога</h1>
+<header class="top">
+  <h1 class="brand">Помощник рентгенолога</h1>
   <div class="wrap bar">
-    <input id=q" type="search" placeholder="Что описываем?" autofocus autocomplete="off" enterkeyhint="search" aria-label="Поиск">
+    <input id="q" type="search" placeholder="Что описываем?" autofocus autocomplete="off" enterkeyhint="search" aria-label="Поиск">
   </div>
 </header>
 

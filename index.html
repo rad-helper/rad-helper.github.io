@@ -102,8 +102,23 @@
     font-size: 0.8rem; color: var(--muted); }
   .copy { height: 38px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--accent);
     color: var(--bg); font-size: 0.9rem; font-weight: 600; cursor: pointer; }
-  .sheet pre { margin: 0; padding: 12px 14px; font: 0.88rem/1.6 ui-monospace, Menlo, Consolas, monospace;
+  .tpl { margin: 0; padding: 12px 14px; font: 0.88rem/1.75 ui-monospace, Menlo, Consolas, monospace;
     white-space: pre-wrap; word-break: break-word; }
+  /* Переключатель {а|б}: тап листает варианты */
+  .tg { font: inherit; color: var(--accent); background: var(--head); border: 0;
+    border-bottom: 1px dashed var(--accent); border-radius: 3px; padding: 0 3px; cursor: pointer; }
+  /* Поле [__]: вбить число или текст */
+  .fld { font: inherit; font-size: 16px; line-height: 1.2; color: var(--ink); background: var(--head);
+    border: 0; border-bottom: 1.5px solid var(--accent); border-radius: 3px; padding: 0 3px;
+    min-width: 3ch; max-width: 100%; box-sizing: content-box; }
+  .fld:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .fld::placeholder { color: var(--muted); }
+  /* Калькулятор {{NASCET}}: считает сам */
+  .calc { font-weight: 700; color: var(--accent); }
+  .calc.bad { color: var(--err); }
+  .reset { height: 38px; padding: 0 10px; border: 0; background: transparent; color: var(--muted);
+    font-size: 0.85rem; cursor: pointer; }
+  .sheet-bar .btns { display: flex; gap: 4px; align-items: center; }
   .hints-h { margin: 6px 0 -4px; font-size: 0.78rem; font-weight: 600; letter-spacing: .06em;
     text-transform: uppercase; color: var(--muted); }
   .study details.sec { margin: 0; }
@@ -365,12 +380,14 @@
           (s.variants.length > 1 ? '<div class="tabs" role="tablist">' + s.variants.map((x, i) =>
             '<button type="button" class="tab" role="tab" data-v="' + i + '" aria-selected="' + (i === vi) + '">' + esc(x.variant) + "</button>").join("") + "</div>" : "") +
           '<div class="sheet"><div class="sheet-bar"><span>Шаблон · ' + esc(v.variant) + '</span>' +
-          '<button type="button" class="copy">Скопировать</button></div><pre></pre></div>' +
+          '<span class="btns"><button type="button" class="reset">Сбросить</button>' +
+          '<button type="button" class="copy">Скопировать</button></span></div><div class="tpl"></div></div>' +
           (v.hints.length ? '<div class="hints-h">Подсказки</div><div class="hints"></div>' : "");
-        studyEl.querySelector("pre").textContent = v.text;
+        const tpl = buildTemplate(v.text, studyEl.querySelector(".tpl"));
         studyEl.querySelectorAll(".pick").forEach(b => b.onclick = () => render(found, found[+b.dataset.i], 0));
         studyEl.querySelectorAll(".tab").forEach(b => b.onclick = () => render(found, s, +b.dataset.v));
-        studyEl.querySelector(".copy").onclick = () => copy(v.text, studyEl.querySelector("pre"));
+        studyEl.querySelector(".copy").onclick = () => copy(tpl.text());
+        studyEl.querySelector(".reset").onclick = () => render(found, s, vi);
         const box = studyEl.querySelector(".hints");
         if (box) Promise.all(v.hints.map(hint)).then(texts => {
           if (current !== s || !box.isConnected) return;
@@ -404,17 +421,121 @@
     return r.text();
   });
 
+  /* ---------- Умные шаблоны: переключатели, поля, калькуляторы ----------
+     В тексте шаблона:
+       {нет|умеренный|выраженный}  — переключатель, первый вариант по умолчанию
+       [__]                        — пустое поле
+       [правой]                    — поле с текстом по умолчанию
+       [Dмин]                      — поле для калькулятора (имя из списка CALC ниже)
+       {{NASCET}}                  — посчитанное значение
+  */
+
+  // Калькуляторы. Чтобы добавить свой: имя, какие поля нужны, формула и сколько знаков после запятой.
+  const CALC = {
+    "NASCET": { inputs: ["Dмин", "Dдист"], digits: 0,
+      f: (dmin, ddist) => (1 - dmin / ddist) * 100 },
+    "ECST":   { inputs: ["Dмин", "Dлук"],  digits: 0,
+      f: (dmin, dbulb) => (1 - dmin / dbulb) * 100 },
+    "ОБЪЁМ":  { inputs: ["Длина", "Ширина", "Высота"], digits: 1,      // эллипсоид, мм → мл
+      f: (a, b, c) => 0.523 * a * b * c / 1000 }
+  };
+
+  const INPUT_NAMES = new Set(Object.values(CALC).flatMap(c => c.inputs));
+  const num = v => parseFloat(String(v).replace(",", "."));
+  const fmt = (x, d) => x.toFixed(d).replace(".", ",");
+
+  function buildTemplate(text, el) {
+    el.innerHTML = "";
+    const parts = [], calcs = [], named = {}, toggles = {};
+    const re = /\{\{\s*([^{}]+?)\s*\}\}|\{([^{}\n]*\|[^{}\n]*)\}|\[([^\[\]\n]*)\]/g;
+    let last = 0, m;
+
+    function recalc() {
+      calcs.forEach(c => {
+        const def = CALC[c.name];
+        const vals = def.inputs.map(n => num(named[n] ? named[n][0].value : NaN));
+        const x = vals.every(isFinite) ? def.f(...vals) : NaN;
+        c.value = isFinite(x) && x >= 0 ? fmt(x, def.digits) : "";
+        c.el.textContent = c.value || "__";
+      });
+    }
+    function sizeField(f) { f.style.width = Math.max(3, (f.value || f.placeholder).length + 1) + "ch"; }
+
+    while ((m = re.exec(text))) {
+      if (m.index > last) { const t = text.slice(last, m.index); el.append(t); parts.push(() => t); }
+      last = re.lastIndex;
+
+      if (m[1] !== undefined) {                                   // {{КАЛЬКУЛЯТОР}}
+        const key = Object.keys(CALC).find(k => lower(k) === lower(m[1]));
+        const span = document.createElement("span");
+        span.className = "calc";
+        if (!key) {
+          span.classList.add("bad"); span.textContent = m[0];
+          span.title = "Нет такого калькулятора. Есть: " + Object.keys(CALC).join(", ");
+          const raw = m[0]; parts.push(() => raw);
+        } else {
+          const c = { name: key, el: span, value: "" };
+          calcs.push(c); parts.push(() => c.value || "[__]");
+        }
+        el.append(span);
+
+      } else if (m[2] !== undefined) {                            // {а|б|в}
+        const opts = m[2].split("|").map(x => x.trim());
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "tg"; b.title = "Нажмите, чтобы сменить: " + opts.join(" / ");
+        // одинаковые переключатели связаны: «{правой|левой}» в описании и в заключении меняются вместе
+        const key = opts.join("|");
+        const group = toggles[key] = toggles[key] || { i: 0, buttons: [] };
+        group.buttons.push(b);
+        b.textContent = opts[group.i] || "—";
+        b.onclick = () => {
+          group.i = (group.i + 1) % opts.length;
+          group.buttons.forEach(x => { x.textContent = opts[group.i] || "—"; });
+        };
+        parts.push(() => opts[group.i]);
+        el.append(b);
+
+      } else {                                                    // [поле]
+        const inner = m[3].trim();
+        const f = document.createElement("input");
+        f.className = "fld"; f.type = "text"; f.autocomplete = "off";
+        if (INPUT_NAMES.has(inner)) {
+          f.placeholder = inner; f.inputMode = "decimal"; f.dataset.name = inner;
+          (named[inner] = named[inner] || []).push(f);
+          f.addEventListener("input", () => {
+            named[inner].forEach(o => { if (o !== f) { o.value = f.value; sizeField(o); } });
+            recalc();
+          });
+        } else if (!inner || /^_+$/.test(inner)) {
+          f.placeholder = "__";
+        } else {
+          f.value = inner;
+        }
+        f.addEventListener("input", () => sizeField(f));
+        sizeField(f);
+        parts.push(() => f.value.trim() || "[__]");
+        el.append(f);
+      }
+    }
+    if (last < text.length) { const t = text.slice(last); el.append(t); parts.push(() => t); }
+    recalc();
+    return { text: () => parts.map(p => p()).join("") };
+  }
+
   let toastTimer;
   function toast(m) {
     toastEl.textContent = m; toastEl.hidden = false;
     clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastEl.hidden = true; }, 1800);
   }
-  function copy(text, pre) {
+  function copy(text) {
     const fallback = () => {
-      const r = document.createRange(); r.selectNodeContents(pre);
-      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
-      try { document.execCommand("copy") ? toast("Скопировано") : toast("Текст выделен — скопируйте вручную"); }
-      catch (e) { toast("Текст выделен — скопируйте вручную"); }
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) {}
+      ta.remove();
+      toast(ok ? "Скопировано" : "Не удалось скопировать — выделите текст вручную");
     };
     if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(() => toast("Скопировано"), fallback);
     else fallback();

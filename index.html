@@ -317,7 +317,8 @@
     let s = 0;
     for (const w of words) {
       const st = stem(w);
-      if (v.words.some(k => k.startsWith(st) || (k.length > 3 && st.startsWith(k)))) s++;
+      if (v.words.includes(w)) s += 2;          // точное слово весит больше частичного
+      else if (v.words.some(k => k.startsWith(st) || (k.length > 3 && st.startsWith(k)))) s++;
       else return 0;
     }
     return s;

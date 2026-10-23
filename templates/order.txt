@@ -1,11 +1,36 @@
 # Шаблоны заключений: одно имя файла на строку.
 # Варианты одного исследования (одинаковая строка «Исследование:») показываются вкладками в этом порядке.
 # Чтобы спрятать шаблон, поставьте # перед его именем.
-ct-chest.md
-ct-chest-ldct.md
+
+# КТ
+ct-brain.md
+ct-brain-short.md
+ct-sinus.md
+ct-temporal.md
 cta-bca.md
 cta-bca-stenosis.md
+ct-chest.md
+ct-chest-short.md
+ct-chest-ldct.md
+cta-pulmonary.md
+cta-thoracic-aorta.md
+ct-abdomen.md
+ct-abdomen-short.md
+ct-kidneys.md
+ct-kidneys-contrast.md
+ct-pelvis-m.md
+ct-pelvis-f.md
+cta-legs.md
+cta-legs-short.md
+cta-legs-aaa.md
+ct-spine.md
+ct-spine-short.md
+
+# Рентген
 xr-knee.md
 xr-knee-oa.md
 xr-hip.md
 xr-hip-oa.md
+
+# Маммография
+mmg.md

@@ -12,3 +12,4 @@ genant.md
 knee-jsw.md
 hip-jsw.md
 kellgren.md
+birads.md

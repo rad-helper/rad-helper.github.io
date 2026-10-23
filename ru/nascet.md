@@ -44,3 +44,4 @@
 Источник: NASCET Collaborators. N Engl J Med 1991;325:445–453. [Калькулятор и пояснения](https://radathand.com/radiology-calculators/neuroradiology/nascet-calculator/)
 Источник: European Carotid Surgery Trialists' Collaborative Group. Lancet 1998;351:1379–1387.
 Источник: Rothwell PM et al. Equivalence of measurements of carotid stenosis. Stroke 1994;25:2435–2439. [Статья](https://www.ahajournals.org/doi/10.1161/01.STR.25.12.2435)
+Radiopaedia: [поиск: NASCET](https://radiopaedia.org/search?scope=articles&q=NASCET) · [поиск: carotid stenosis](https://radiopaedia.org/search?scope=articles&q=carotid+artery+stenosis)

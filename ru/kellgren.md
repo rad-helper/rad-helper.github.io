@@ -11,3 +11,4 @@
 | 4 | Крупные остеофиты, выраженное сужение, выраженный склероз, деформация суставных концов |
 
 Источник: Kellgren JH, Lawrence JS. Ann Rheum Dis 1957;16:494–502.
+Radiopaedia: [Kellgren and Lawrence system](https://radiopaedia.org/articles/kellgren-and-lawrence-system-for-classification-of-osteoarthritis)

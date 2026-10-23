@@ -15,3 +15,4 @@
 
 Источник: Genant H.K. et al. J Bone Miner Res 1993;8:1137–1148.
 Источник: Pickhardt PJ et al. Ann Intern Med 2013;158:588–595. [Статья](https://www.acpjournals.org/doi/10.7326/0003-4819-158-8-201304160-00003)
+Radiopaedia: [поиск: Genant classification](https://radiopaedia.org/search?scope=articles&q=Genant+classification)

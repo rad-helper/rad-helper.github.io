@@ -24,3 +24,4 @@
 
 Источник: Beattie KA et al. BMC Musculoskelet Disord 2008;9:119. [Статья](https://bmcmusculoskeletdisord.biomedcentral.com/articles/10.1186/1471-2474-9-119)
 Источник: Vandergaag et al. JBMR Plus 2026;10(2):ziaf196. [Статья](https://academic.oup.com/jbmrplus/article/10/2/ziaf196/8405706)
+Radiopaedia: [поиск: knee osteoarthritis](https://radiopaedia.org/search?scope=articles&q=knee+osteoarthritis)

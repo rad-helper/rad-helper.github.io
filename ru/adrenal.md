@@ -31,3 +31,4 @@
 Новое или растущее образование: без онкоанамнеза — КТ надпочечников или удаление; с онкоанамнезом — биопсия или ПЭТ/КТ.
 
 Источник: Mayo-Smith W.W. et al. J Am Coll Radiol 2017;14:1038–1044. [Radiopaedia](https://radiopaedia.org/articles/management-of-incidental-adrenal-masses-american-college-of-radiology-white-paper-1)
+Radiopaedia: [поиск: adrenal incidentaloma](https://radiopaedia.org/search?scope=articles&q=adrenal+incidentaloma)

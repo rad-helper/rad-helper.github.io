@@ -24,3 +24,4 @@
 | D | Очень плотная ткань, чувствительность маммографии снижена |
 
 Источник: ACR BI-RADS Atlas, 5th ed. American College of Radiology, 2013.
+Radiopaedia: [поиск: BI-RADS](https://radiopaedia.org/search?scope=articles&q=BI-RADS) · [Breast density](https://radiopaedia.org/articles/breast-density)

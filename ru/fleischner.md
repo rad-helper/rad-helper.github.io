@@ -25,3 +25,4 @@
 | Множественные | КТ через 3–6 мес; если стабильны — рассмотреть 2 и 4 года | КТ через 3–6 мес, дальше по самому подозрительному |
 
 Источник: MacMahon H. et al. Radiology 2017;284:228–243. [PubMed](https://pubmed.ncbi.nlm.nih.gov/28240562/)
+Radiopaedia: [Fleischner Society recommendations](https://radiopaedia.org/articles/fleischner-society-pulmonary-nodule-recommendations-1)

@@ -12,3 +12,4 @@
 **Модификатор N** — число артерий с кальцинозом (ствол ЛКА, ПМЖВ, ОВ, ПКА): N1–N4. Запись: «CAC-DRS A2/N3» или «V1/N1».
 
 Источник: Hecht H.S. et al. J Cardiovasc Comput Tomogr 2018;12:185–191. [Radiopaedia](https://radiopaedia.org/articles/coronary-artery-calcium-data-and-reporting-system)
+Radiopaedia: [поиск: CAC-DRS](https://radiopaedia.org/search?scope=articles&q=CAC-DRS)

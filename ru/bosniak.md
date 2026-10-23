@@ -22,3 +22,4 @@
 Неоднородное неусиливающееся образование на КТ не классифицируется — рекомендуется МРТ.
 
 Источник: Silverman S.G. et al. Radiology 2019;292:475–488. [Radiology Assistant](https://radiologyassistant.nl/abdomen/kidney/bozniak-2019)
+Radiopaedia: [Bosniak classification (2019)](https://radiopaedia.org/articles/bosniak-classification-of-cystic-renal-masses-version-2019)

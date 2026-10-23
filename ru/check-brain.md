@@ -38,3 +38,4 @@
 - Перелом? (особенно основание черепа при падении)
 - Атрофия по GCA? Микроангиопатия (Fazekas ≥ 2)?
 - Синусит на границе исследования?
+Radiopaedia: [Fazekas scale](https://radiopaedia.org/articles/fazekas-scale-for-white-matter-lesions) · [поиск: ASPECTS](https://radiopaedia.org/search?scope=articles&q=ASPECTS) · [поиск: Evans index](https://radiopaedia.org/search?scope=articles&q=Evans+index)

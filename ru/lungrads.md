@@ -16,3 +16,4 @@
 | S | Модификатор к любой категории: значимая находка вне лёгочных узлов (например, «2S») | По ситуации |
 
 Источник: ACR Lung-RADS v2022. [acr.org](https://www.acr.org/Clinical-Resources/Clinical-Tools-and-Reference/Reporting-and-Data-Systems/Lung-RADS)
+Radiopaedia: [поиск: Lung-RADS](https://radiopaedia.org/search?scope=articles&q=Lung-RADS)

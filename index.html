@@ -225,7 +225,7 @@
       }
       if (/^[-*] /.test(t)) { flushP(); list.push(t.slice(2)); continue; }
       if (/^`[^`]+`$/.test(t)) { flush(); html += '<code class="formula">' + esc(t.slice(1, -1)) + "</code>"; continue; }
-      if (/^Источник:/.test(t)) { flush(); html += '<p class="src">' + inline(t) + "</p>"; continue; }
+      if (/^(Источник|Radiopaedia):/.test(t)) { flush(); html += '<p class="src">' + inline(t) + "</p>"; continue; }
       flushL(); para.push(t);
     }
     flush();

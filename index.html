@@ -105,8 +105,11 @@
   .tpl { margin: 0; padding: 12px 14px; font: 0.88rem/1.75 ui-monospace, Menlo, Consolas, monospace;
     white-space: pre-wrap; word-break: break-word; }
   /* Переключатель {а|б}: тап листает варианты */
-  .tg { font: inherit; color: var(--accent); background: var(--head); border: 0;
-    border-bottom: 1px dashed var(--accent); border-radius: 3px; padding: 0 3px; cursor: pointer; }
+  .tg { color: var(--accent); background: var(--head); border-bottom: 1px dashed var(--accent);
+    border-radius: 3px; padding: 0 3px; cursor: pointer; }
+  .tg:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .tg [hidden] { display: none; }
+  .opt-empty { color: var(--muted); }
   /* Поле [__]: вбить число или текст */
   .fld { font: inherit; font-size: 16px; line-height: 1.2; color: var(--ink); background: var(--head);
     border: 0; border-bottom: 1.5px solid var(--accent); border-radius: 3px; padding: 0 3px;
@@ -424,6 +427,8 @@
   /* ---------- Умные шаблоны: переключатели, поля, калькуляторы ----------
      В тексте шаблона:
        {нет|умеренный|выраженный}  — переключатель, первый вариант по умолчанию
+       {#сердце: а|б}              — именованный: все {#сердце: ...} переключаются вместе
+       {|фраза}                    — пустой вариант; строка из одних пустых при копировании убирается
        [__]                        — пустое поле
        [правой]                    — поле с текстом по умолчанию
        [Dмин]                      — поле для калькулятора (имя из списка CALC ниже)
@@ -447,8 +452,8 @@
   function buildTemplate(text, el) {
     el.innerHTML = "";
     const parts = [], calcs = [], named = {}, toggles = {};
+    const EMPTY = "\u0000";                     // пустой вариант: строка, где только он, при копировании исчезает
     const re = /\{\{\s*([^{}]+?)\s*\}\}|\{([^{}\n]*\|[^{}\n]*)\}|\[([^\[\]\n]*)\]/g;
-    let last = 0, m;
 
     function recalc() {
       calcs.forEach(c => {
@@ -461,65 +466,112 @@
     }
     function sizeField(f) { f.style.width = Math.max(3, (f.value || f.placeholder).length + 1) + "ch"; }
 
-    while ((m = re.exec(text))) {
-      if (m.index > last) { const t = text.slice(last, m.index); el.append(t); parts.push(() => t); }
-      last = re.lastIndex;
-
-      if (m[1] !== undefined) {                                   // {{КАЛЬКУЛЯТОР}}
-        const key = Object.keys(CALC).find(k => lower(k) === lower(m[1]));
-        const span = document.createElement("span");
-        span.className = "calc";
-        if (!key) {
-          span.classList.add("bad"); span.textContent = m[0];
-          span.title = "Нет такого калькулятора. Есть: " + Object.keys(CALC).join(", ");
-          const raw = m[0]; parts.push(() => raw);
-        } else {
-          const c = { name: key, el: span, value: "" };
-          calcs.push(c); parts.push(() => c.value || "[__]");
-        }
-        el.append(span);
-
-      } else if (m[2] !== undefined) {                            // {а|б|в}
-        const opts = m[2].split("|").map(x => x.trim());
-        const b = document.createElement("button");
-        b.type = "button"; b.className = "tg"; b.title = "Нажмите, чтобы сменить: " + opts.join(" / ");
-        // одинаковые переключатели связаны: «{правой|левой}» в описании и в заключении меняются вместе
-        const key = opts.join("|");
-        const group = toggles[key] = toggles[key] || { i: 0, buttons: [] };
-        group.buttons.push(b);
-        b.textContent = opts[group.i] || "—";
-        b.onclick = () => {
-          group.i = (group.i + 1) % opts.length;
-          group.buttons.forEach(x => { x.textContent = opts[group.i] || "—"; });
-        };
-        parts.push(() => opts[group.i]);
-        el.append(b);
-
-      } else {                                                    // [поле]
-        const inner = m[3].trim();
-        const f = document.createElement("input");
-        f.className = "fld"; f.type = "text"; f.autocomplete = "off";
-        if (INPUT_NAMES.has(inner)) {
-          f.placeholder = inner; f.inputMode = "decimal"; f.dataset.name = inner;
-          (named[inner] = named[inner] || []).push(f);
-          f.addEventListener("input", () => {
-            named[inner].forEach(o => { if (o !== f) { o.value = f.value; sizeField(o); } });
-            recalc();
-          });
-        } else if (!inner || /^_+$/.test(inner)) {
-          f.placeholder = "__";
-        } else {
-          f.value = inner;
-        }
-        f.addEventListener("input", () => sizeField(f));
-        sizeField(f);
-        parts.push(() => f.value.trim() || "[__]");
-        el.append(f);
+    function field(inner, target, out) {                          // [поле]
+      inner = inner.trim();
+      const f = document.createElement("input");
+      f.className = "fld"; f.type = "text"; f.autocomplete = "off";
+      if (INPUT_NAMES.has(inner)) {
+        f.placeholder = inner; f.inputMode = "decimal"; f.dataset.name = inner;
+        (named[inner] = named[inner] || []).push(f);
+        f.addEventListener("input", () => {
+          named[inner].forEach(o => { if (o !== f) { o.value = f.value; sizeField(o); } });
+          recalc();
+        });
+      } else if (!inner || /^_+$/.test(inner)) {
+        f.placeholder = "__";
+      } else {
+        f.value = inner;
       }
+      f.addEventListener("input", () => sizeField(f));
+      sizeField(f);
+      out.push(() => f.value.trim() || "[__]");
+      target.append(f);
     }
-    if (last < text.length) { const t = text.slice(last); el.append(t); parts.push(() => t); }
+
+    function toggle(inner, target, out) {                         // {а|б|в} или {#имя: а|б|в}
+      let name = null;
+      const nm = inner.match(/^\s*#([^:|]+):\s*/);
+      if (nm) { name = nm[1].trim(); inner = inner.slice(nm[0].length); }
+      const opts = inner.split("|").map(x => x.trim());
+      // связаны переключатели с одним именем или с одинаковыми вариантами
+      const key = name ? "#" + lower(name) : opts.join("|");
+      const group = toggles[key] = toggles[key] || { i: 0, insts: [] };
+
+      const wrap = document.createElement("span");
+      wrap.className = "tg"; wrap.tabIndex = 0; wrap.setAttribute("role", "button");
+      wrap.title = "Нажмите, чтобы сменить вариант";
+      const views = opts.map(o => {
+        const span = document.createElement("span");
+        const p = [];
+        if (!o) { span.className = "opt-empty"; span.textContent = name ? "+ " + name : "—"; }
+        else parse(o, span, p, false);
+        wrap.append(span);
+        return { span, p, empty: !o };
+      });
+      const inst = { views };
+      group.insts.push(inst);
+      const show = () => group.insts.forEach(g => g.views.forEach((v, k) => { v.span.hidden = k !== group.i % g.views.length; }));
+      const next = () => {
+        group.i = (group.i + 1) % Math.max(...group.insts.map(g => g.views.length));
+        show();
+      };
+      wrap.addEventListener("click", e => { if (!e.target.closest("input")) next(); });
+      wrap.addEventListener("keydown", e => {
+        if (e.target === wrap && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); next(); }
+      });
+      show();
+      out.push(() => {
+        const v = views[group.i % views.length];
+        return v.empty ? EMPTY : v.p.map(f => f()).join("");
+      });
+      target.append(wrap);
+    }
+
+    function parse(str, target, out, top) {
+      re.lastIndex = 0;
+      const found = [];
+      let m;
+      while ((m = re.exec(str))) found.push([m.index, re.lastIndex, m[1], m[2], m[3], m[0]]);
+      let last = 0;
+      for (const [start, end, calc, tg, fld, raw] of found) {
+        if (start > last) { const t = str.slice(last, start); target.append(t); out.push(() => t); }
+        last = end;
+        if (calc !== undefined && top) {                          // {{КАЛЬКУЛЯТОР}}
+          const key = Object.keys(CALC).find(k => lower(k) === lower(calc));
+          const span = document.createElement("span");
+          span.className = "calc";
+          if (!key) {
+            span.classList.add("bad"); span.textContent = raw;
+            span.title = "Нет такого калькулятора. Есть: " + Object.keys(CALC).join(", ");
+            out.push(() => raw);
+          } else {
+            const c = { name: key, el: span, value: "" };
+            calcs.push(c); out.push(() => c.value || "[__]");
+          }
+          target.append(span);
+        } else if (tg !== undefined && top) {
+          toggle(tg, target, out);
+        } else if (fld !== undefined) {
+          field(fld, target, out);
+        } else {                                                  // скобки, которые здесь не работают, — как текст
+          target.append(raw); out.push(() => raw);
+        }
+      }
+      if (last < str.length) { const t = str.slice(last); target.append(t); out.push(() => t); }
+    }
+
+    parse(text, el, parts, true);
     recalc();
-    return { text: () => parts.map(p => p()).join("") };
+    return {
+      text: () => parts.map(p => p()).join("")
+        .split("\n").filter(l => !(l.includes(EMPTY) && !l.replace(/\u0000/g, "").trim())).join("\n")
+        .replace(/\u0000/g, "")
+        .replace(/[ \t]{2,}/g, " ")
+        .replace(/[ \t]+\n/g, "\n").replace(/\n[ \t]+/g, "\n")
+        .replace(/ +([.,;:])/g, "$1")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim()
+    };
   }
 
   let toastTimer;

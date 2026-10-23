@@ -27,6 +27,10 @@ ct-spine.md
 ct-spine-short.md
 
 # Рентген
+xr-chest.md
+xr-chest-age.md
+xr-chest-supine.md
+xr-chest-full.md
 xr-knee.md
 xr-knee-oa.md
 xr-hip.md

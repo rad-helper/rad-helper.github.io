@@ -84,11 +84,6 @@
   }
 
   /* Шаблоны заключений */
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
-  .chips[hidden] { display: none; }
-  .chip { height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 18px;
-    background: var(--card); color: var(--ink); font-size: 0.88rem; cursor: pointer; }
-  .chip:hover { border-color: var(--accent); color: var(--accent); }
   .study { margin: 14px 0 6px; display: flex; flex-direction: column; gap: 10px; }
   .study[hidden] { display: none; }
   .picks { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -119,19 +114,26 @@
 
   .empty { text-align: center; color: var(--muted); padding: 24px 0; }
   footer { color: var(--muted); font-size: 0.8rem; padding: 16px 0 max(32px, env(safe-area-inset-bottom)); }
+
+  /* Стартовая страница: только строка поиска */
+  body.home header.top { position: static; border-bottom: 0; padding-top: 30vh; }
+  body.home .bar { max-width: 620px; }
+  body.home #q { height: 54px; padding: 0 18px; font-size: 18px; border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, .06); }
+  body.home #q:focus { outline: none; border-color: var(--accent); }
+  body.home main { display: none; }
+  body.home footer { position: fixed; left: 0; right: 0; bottom: 0; text-align: center; font-size: 0.72rem; }
 </style>
 </head>
 <body>
+<script>if (!location.hash) document.body.classList.add("home");</script>
 
 <header class="top"><div class="wrap bar">
-  <input id="q" type="search" placeholder="Что описываем? огк, колено…" autocomplete="off" enterkeyhint="search" aria-label="Поиск">
-  <button class="tool" id="all" type="button">Раскрыть всё</button>
+  <input id="q" type="search" placeholder="Что описываем?" autofocus autocomplete="off" enterkeyhint="search" aria-label="Поиск">
 </div></header>
 
 <main class="wrap">
-  <h1>Нативная плотность знаний: классификации и пороги для КТ</h1>
   <div id="note"></div>
-  <div class="chips" id="chips"></div>
   <section class="study" id="study" hidden></section>
   <div id="list"><p class="empty">Загрузка…</p></div>
   <p class="empty" id="none" hidden>Ничего не найдено.</p>
@@ -152,7 +154,6 @@
   const listEl = document.getElementById("list");
   const noteEl = document.getElementById("note");
   const q = document.getElementById("q");
-  const allBtn = document.getElementById("all");
   const none = document.getElementById("none");
 
   if (location.protocol === "file:") {
@@ -250,6 +251,9 @@
     const texts = secs.map(s => norm(s.textContent));
 
     q.addEventListener("input", () => {
+      const wasHome = document.body.classList.contains("home");
+      document.body.classList.toggle("home", !q.value.trim());
+      if (wasHome && q.value.trim()) window.scrollTo(0, 0);
       const words = norm(q.value).split(/\s+/).filter(Boolean);
       let shown = 0;
       secs.forEach((s, i) => {
@@ -261,11 +265,6 @@
       none.hidden = shown > 0;
     });
 
-    allBtn.addEventListener("click", () => {
-      const open = !secs.every(s => s.open || s.hidden);
-      secs.forEach(s => { if (!s.hidden) s.open = open; });
-      allBtn.textContent = open ? "Свернуть всё" : "Раскрыть всё";
-    });
 
     // открытый раздел попадает в адрес — ссылкой можно поделиться
     secs.forEach(s => s.addEventListener("toggle", () => {
@@ -278,7 +277,6 @@
   /* ---------- Шаблоны заключений ---------- */
   const TDIR = "templates/";
   const studyEl = document.getElementById("study");
-  const chipsEl = document.getElementById("chips");
   const toastEl = document.getElementById("toast");
   const lower = s => s.toLowerCase().replace(/ё/g, "е");
   const tokens = s => lower(s).replace(/[^a-zа-я0-9]+/g, " ").split(" ").filter(Boolean);
@@ -302,9 +300,8 @@
       f, study, text,
       variant: meta["вариант"] || "Основной",
       modality: meta["модальность"] || "",
-      chip: meta["кнопка"] || "",
       hints: (meta["подсказки"] || "").split(/[,\s]+/).map(s => s.replace(/\.md$/i, "")).filter(Boolean),
-      words: tokens([study, meta["вариант"], meta["модальность"], meta["кнопка"], meta["слова"]].join(" "))
+      words: tokens([study, meta["вариант"], meta["модальность"], meta["слова"]].join(" "))
     };
   }
 
@@ -328,8 +325,7 @@
       const studies = [];
       variants.forEach(v => {
         let s = studies.find(x => x.title === v.study);
-        if (!s) { s = { title: v.study, modality: v.modality, chip: v.chip, variants: [] }; studies.push(s); }
-        if (!s.chip && v.chip) s.chip = v.chip;
+        if (!s) { s = { title: v.study, modality: v.modality, variants: [] }; studies.push(s); }
         s.variants.push(v);
       });
       const hintCache = {};
@@ -339,12 +335,6 @@
         return hintCache[name];
       };
 
-      studies.filter(s => s.chip).forEach(s => {
-        const b = document.createElement("button");
-        b.type = "button"; b.className = "chip"; b.textContent = s.chip;
-        b.onclick = () => { q.value = s.chip; q.dispatchEvent(new Event("input")); q.focus(); };
-        chipsEl.appendChild(b);
-      });
 
       let current = null;
       function show(found, words, keep) {
@@ -391,7 +381,6 @@
 
       q.addEventListener("input", () => {
         const words = tokens(q.value).filter(w => !STOP.has(w));
-        chipsEl.hidden = q.value.trim() !== "";
         if (!words.length) { show([], words); return; }
         const found = studies.map(s => ({ s, sc: Math.max(...s.variants.map(v => score(words, v))) }))
           .filter(x => x.sc > 0).sort((a, b) => b.sc - a.sc).map(x => x.s);

@@ -35,6 +35,7 @@ xr-knee.md
 xr-knee-oa.md
 xr-hip.md
 xr-hip-oa.md
+xr-feet-flat.md
 
 # Маммография
 mmg.md

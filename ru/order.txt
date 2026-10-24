@@ -12,4 +12,5 @@ genant.md
 knee-jsw.md
 hip-jsw.md
 kellgren.md
+flatfoot.md
 birads.md

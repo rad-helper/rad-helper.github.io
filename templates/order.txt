@@ -35,6 +35,10 @@ xr-knee.md
 xr-knee-oa.md
 xr-hip.md
 xr-hip-oa.md
+xr-hand.md
+xr-hand-cmc.md
+xr-hand-oa.md
+xr-hand-erosive.md
 xr-feet-flat.md
 
 # Маммография

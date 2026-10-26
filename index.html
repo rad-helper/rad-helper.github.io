@@ -432,7 +432,8 @@
        [__]                        — пустое поле
        [правой]                    — поле с текстом по умолчанию
        [Dмин]                      — поле для калькулятора (имя из списка CALC ниже)
-       {{NASCET}}                  — посчитанное значение
+       {{NASCET}}                  — посчитанное значение; можно и внутри переключателя:
+                                     {норма|расширена, КТИ {{КТИ}}%}
   */
 
   // Калькуляторы. Чтобы добавить свой: имя, какие поля нужны, формула и сколько знаков после запятой.
@@ -442,7 +443,9 @@
     "ECST":   { inputs: ["Dмин", "Dлук"],  digits: 0,
       f: (dmin, dbulb) => (1 - dmin / dbulb) * 100 },
     "ОБЪЁМ":  { inputs: ["Длина", "Ширина", "Высота"], digits: 1,      // эллипсоид, мм → мл
-      f: (a, b, c) => 0.523 * a * b * c / 1000 }
+      f: (a, b, c) => 0.523 * a * b * c / 1000 },
+    "КТИ":    { inputs: ["Сердце", "Грудь"], digits: 0,               // кардиоторакальный индекс, %
+      f: (heart, chest) => heart / chest * 100 }
   };
 
   const INPUT_NAMES = new Set(Object.values(CALC).flatMap(c => c.inputs));
@@ -453,7 +456,8 @@
     el.innerHTML = "";
     const parts = [], calcs = [], named = {}, toggles = {};
     const EMPTY = "\u0000";                     // пустой вариант: строка, где только он, при копировании исчезает
-    const re = /\{\{\s*([^{}]+?)\s*\}\}|\{([^{}\n]*\|[^{}\n]*)\}|\[([^\[\]\n]*)\]/g;
+    // {{калькулятор}} | {переключатель} — внутри него можно {{калькулятор}}, но не другой переключатель | [поле]
+    const re = /\{\{\s*([^{}]+?)\s*\}\}|\{((?:[^{}\n]|\{\{[^{}\n]*\}\})*\|(?:[^{}\n]|\{\{[^{}\n]*\}\})*)\}|\[([^\[\]\n]*)\]/g;
 
     function recalc() {
       calcs.forEach(c => {
@@ -536,7 +540,7 @@
       for (const [start, end, calc, tg, fld, raw] of found) {
         if (start > last) { const t = str.slice(last, start); target.append(t); out.push(() => t); }
         last = end;
-        if (calc !== undefined && top) {                          // {{КАЛЬКУЛЯТОР}}
+        if (calc !== undefined) {                                 // {{КАЛЬКУЛЯТОР}}, в том числе внутри переключателя
           const key = Object.keys(CALC).find(k => lower(k) === lower(calc));
           const span = document.createElement("span");
           span.className = "calc";

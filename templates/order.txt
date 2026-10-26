@@ -33,12 +33,15 @@ xr-chest-supine.md
 xr-chest-full.md
 xr-knee.md
 xr-knee-oa.md
+xr-knee-oa-both.md
 xr-hip.md
 xr-hip-oa.md
 xr-hand.md
 xr-hand-cmc.md
 xr-hand-oa.md
 xr-hand-erosive.md
+xr-feet.md
+xr-feet-hallux.md
 xr-feet-flat.md
 
 # Маммография

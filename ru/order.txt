@@ -13,6 +13,7 @@ knee-jsw.md
 hip-jsw.md
 kellgren.md
 flatfoot.md
+hallux-rigidus.md
 rhizarthrosis.md
 hand-arthritis.md
 birads.md

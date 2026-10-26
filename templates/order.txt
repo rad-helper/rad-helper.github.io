@@ -46,3 +46,7 @@ xr-feet-flat.md
 
 # Маммография
 mmg.md
+mmg-mastectomy.md
+mmg-mass.md
+mmg-calc.md
+mmg-asym.md

@@ -17,3 +17,4 @@ hallux-rigidus.md
 rhizarthrosis.md
 hand-arthritis.md
 birads.md
+birads-lexicon.md

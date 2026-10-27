@@ -447,7 +447,9 @@
     "КТИ":    { inputs: ["Сердце", "Грудь"], digits: 0,               // кардиоторакальный индекс, %
       f: (heart, chest) => heart / chest * 100 },
     "ЭВАНС":  { inputs: ["Рога", "Череп"], digits: 2,                 // индекс Эванса: передние рога / внутренний поперечник черепа
-      f: (horns, skull) => horns / skull }
+      f: (horns, skull) => horns / skull,
+      // сам ставит переключатель {#желудочки: норма|расширены}: > 0,3 — второй вариант
+      toggle: "желудочки", pick: x => x > 0.3 ? 1 : 0 }
   };
 
   const INPUT_NAMES = new Set(Object.values(CALC).flatMap(c => c.inputs));
@@ -468,6 +470,9 @@
         const x = vals.every(isFinite) ? def.f(...vals) : NaN;
         c.value = isFinite(x) && x >= 0 ? fmt(x, def.digits) : "";
         c.el.textContent = c.value || "__";
+        // порог: сравниваем уже округлённое значение, чтобы 0,30 на экране не считалось расширением
+        const g = def.toggle && toggles["#" + lower(def.toggle)];
+        if (g && c.value) { g.i = def.pick(num(c.value)); g.show(); }
       });
     }
     function sizeField(f) { f.style.width = Math.max(3, (f.value || f.placeholder).length + 1) + "ch"; }
@@ -516,7 +521,7 @@
       });
       const inst = { views };
       group.insts.push(inst);
-      const show = () => group.insts.forEach(g => g.views.forEach((v, k) => { v.span.hidden = k !== group.i % g.views.length; }));
+      const show = group.show = () => group.insts.forEach(g => g.views.forEach((v, k) => { v.span.hidden = k !== group.i % g.views.length; }));
       const next = () => {
         group.i = (group.i + 1) % Math.max(...group.insts.map(g => g.views.length));
         show();

@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>График отпусков отделения</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@500&family=Unbounded:wght@600&display=swap">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*,*::before,*::after{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>
+/* Layout: planning sheet — title, controls, roster of the four teams (each person gets a colour), then twelve month calendars (Mon–Sun) whose day cells carry one lane per team; alternative day-scaled timeline view */
+:root{
+  --bg:#edf1f0; --surface:#fbfcfc; --ink:#14201d; --muted:#5a6864; --line:#d3dbd8;
+  --tile:#e3e9e7; --vac:#2b53c4; --vac-soft:#9db0e6; --vac-ink:#ffffff; --warn:#d68000; --warn-ink:#1d1300; --hol:#c2410c;
+  --p0:#3566d6; --p1:#2f9a5c; --p2:#d99a00; --p3:#c94a8c; --p4:#1d979d; --p5:#7a5bd3;
+  --f-display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --d:4px; --namecol:176px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#101614; --surface:#171e1c; --ink:#e5ebe9; --muted:#93a29e; --line:#2a3431;
+  --tile:#232c2a; --vac:#7593f2; --vac-soft:#34457a; --vac-ink:#0b1022; --warn:#f2a531; --warn-ink:#1b1200; --hol:#f08a5d;
+  --p0:#7b9cf5; --p1:#5cc285; --p2:#f0c040; --p3:#e27ab3; --p4:#4cc6c9; --p5:#a68cf0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101614; --surface:#171e1c; --ink:#e5ebe9; --muted:#93a29e; --line:#2a3431;
+  --tile:#232c2a; --vac:#7593f2; --vac-soft:#34457a; --vac-ink:#0b1022; --warn:#f2a531; --warn-ink:#1b1200; --hol:#f08a5d;
+  --p0:#7b9cf5; --p1:#5cc285; --p2:#f0c040; --p3:#e27ab3; --p4:#4cc6c9; --p5:#a68cf0; color-scheme:dark}
+
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body)}
+.wrap{max-width:1500px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px;display:flex;flex-direction:column;gap:20px}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--vac);outline-offset:2px}
+
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 32px}
+.title{display:flex;flex-direction:column;gap:8px;min-width:0}
+h1{font:600 clamp(22px,3.4vw,34px)/1.1 var(--f-display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.rules{margin:0;color:var(--muted);max-width:76ch}
+.rules b{color:var(--ink);font-weight:500}
+.year{display:flex;align-items:center;gap:6px}
+.year output{font:500 clamp(28px,4vw,40px)/1 var(--f-mono);font-variant-numeric:tabular-nums;min-width:4ch;text-align:center}
+.iconbtn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:18px;line-height:1;display:inline-grid;place-items:center;padding:0;flex:none}
+.iconbtn:hover{background:var(--tile)}
+.iconbtn:disabled{opacity:.4;cursor:default}
+
+.bar{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center}
+.add{display:flex;flex-wrap:wrap;gap:8px;flex:1 1 420px;max-width:620px}
+.add input{flex:1 1 200px;min-width:0}
+.ctl{height:40px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.btn{height:40px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer;white-space:nowrap;font-weight:500}
+.btn:hover{background:var(--tile)}
+.btn.primary{background:var(--vac);border-color:var(--vac);color:var(--vac-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--warn)}
+.btn.danger.armed{background:var(--warn);border-color:var(--warn);color:var(--warn-ink)}
+.btn.small{height:32px;padding:0 12px;font-size:14px}
+.btn:disabled{opacity:.45;cursor:default}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:3px;gap:3px}
+.seg button{height:32px;padding:0 12px;border:0;border-radius:6px;background:transparent;cursor:pointer;font-size:14px;white-space:nowrap}
+.seg button:hover{background:var(--tile)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+.stats{display:flex;flex-wrap:wrap;gap:8px 28px;margin:0;padding:0;list-style:none}
+.stats li{display:flex;align-items:baseline;gap:8px;color:var(--muted)}
+.stats b{font:500 20px var(--f-mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.stats b.alert{color:var(--warn)}
+
+/* roster */
+.roster{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.rg{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.rg-h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.gname{font:600 12px var(--f-body);letter-spacing:.07em;text-transform:uppercase}
+.lim{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.lim output{font:500 13px var(--f-mono);color:var(--ink);min-width:1.5ch;text-align:center}
+.lim .iconbtn{width:24px;height:24px;font-size:14px}
+.chips{display:flex;flex-direction:column;gap:2px}
+.chip{display:flex;align-items:center;gap:4px}
+.chip .pick{flex:1;min-width:0;display:flex;align-items:center;gap:8px;height:32px;border:0;background:transparent;border-radius:6px;padding:0 6px;text-align:left;cursor:pointer}
+.chip .pick:hover{background:var(--tile)}
+.chip .pick[aria-pressed="true"]{background:var(--tile);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.chip .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.chip .q{font:500 12px var(--f-mono);color:var(--muted);flex:none}
+.chip .q.full{color:var(--ink)} .chip .q.over{color:var(--warn)}
+.chip .edit{width:28px;height:28px;font-size:13px;border:0;background:transparent}
+.chip .edit:hover{background:var(--tile)}
+.dot{width:12px;height:12px;border-radius:3px;flex:none}
+
+.selbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;background:var(--surface);border:1.5px solid var(--ink);border-radius:12px;padding:10px 12px 10px 16px}
+.selbar .txt{flex:1 1 260px;min-width:0}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--muted);font-size:13px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.lg-x{width:16px;height:12px;border-radius:3px;box-shadow:inset 0 0 0 2px var(--warn)}
+.lg-h{font:700 12px var(--f-mono);color:var(--hol)}
+.lg-t{width:16px;height:12px;border-radius:3px;box-shadow:inset 0 0 0 2px var(--ink)}
+
+/* calendar */
+.months{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.month{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 10px 10px;min-width:0}
+.month h3{margin:0 0 8px 4px;font:600 13px var(--f-display);letter-spacing:.02em;text-transform:lowercase;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.month h3 small{font:500 11px var(--f-mono);color:var(--muted);text-transform:none;letter-spacing:0}
+.dows,.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.dows{margin-bottom:3px}
+.dows span{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:center}
+.day{height:48px;border:0;padding:4px 3px 3px;border-radius:6px;background:var(--bg);display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;text-align:left;min-width:0}
+.day:hover{background:var(--tile)}
+.day .n{font:500 11px/1 var(--f-mono);color:var(--ink);padding-left:2px}
+.day.we .n{color:var(--muted)}
+.day.hol .n{color:var(--hol);font-weight:700}
+.day.today{box-shadow:inset 0 0 0 2px var(--ink)}
+.day.x{box-shadow:inset 0 0 0 2px var(--warn)}
+.day.pick-on{background:var(--tile)}
+.blank{height:48px}
+.lanes{display:flex;flex-direction:column;gap:2px;height:26px}
+.lane{flex:1;display:flex;gap:1px;border-radius:2px;overflow:hidden;min-height:0}
+.lane i{flex:1;min-width:0}
+.lane i.dim{opacity:.2}
+
+/* editor */
+.editor{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.editor h2{margin:0;font:600 13px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.erow{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+.field input{height:40px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:15px}
+.field.grow{flex:1 1 220px}
+.field input[type=number]{width:96px;font-family:var(--f-mono)}
+.checks{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px;color:var(--ink)}
+.checks label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.ranges{display:flex;flex-direction:column;gap:8px}
+.range{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.range input{height:36px;padding:0 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-family:var(--f-mono);font-size:14px}
+.range .len{font:500 12px var(--f-mono);color:var(--muted);min-width:9ch}
+.range .iconbtn{width:32px;height:32px;font-size:15px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+
+/* timeline */
+.frame{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;-webkit-overflow-scrolling:touch}
+.sheet{position:relative;width:max-content;min-width:100%}
+.row{display:flex;align-items:stretch}
+.stick{position:sticky;left:0;z-index:3;flex:none;width:var(--namecol);background:var(--surface);border-right:1px solid var(--line)}
+.track{position:relative;flex:none;height:34px}
+.prow .track{cursor:pointer;background-image:linear-gradient(90deg,var(--tile) 0 calc(100% - 2px),transparent calc(100% - 2px));background-size:calc(var(--d) * 7) 18px;background-repeat:repeat-x}
+.ro .prow .track{cursor:default}
+.prow:hover,.prow:hover .stick{background:var(--bg)}
+.hrow .stick{padding:10px 12px 0;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hrow .track{height:30px}
+.mo{position:absolute;top:10px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding-left:5px;white-space:nowrap;overflow:hidden}
+.wrow .stick{padding:0 12px;font-size:11px;color:var(--muted);display:flex;align-items:center}
+.wrow .track{height:22px;border-bottom:1px solid var(--line)}
+.wk{position:absolute;top:2px;font:500 10px var(--f-mono);color:var(--muted);width:calc(var(--d) * 7);text-align:center}
+.wk.now span{background:var(--vac);color:var(--vac-ink);border-radius:4px;padding:0 3px}
+.hd{position:absolute;bottom:0;width:var(--d);height:5px;background:var(--hol);border-radius:1px 1px 0 0}
+.mline{position:absolute;top:0;bottom:0;width:1px;background:var(--line);z-index:1;pointer-events:none}
+.tline{position:absolute;top:0;bottom:0;width:2px;background:var(--vac);z-index:2;pointer-events:none;opacity:.8}
+.grow-h{border-top:1px solid var(--line)}
+.grow-h .stick{padding:10px 12px;display:flex;align-items:center}
+.grow-h .track{height:40px}
+.cov{position:absolute;top:calc(50% - 4px);height:8px;background:var(--vac-soft)}
+.cov.x{background:var(--warn);top:calc(50% - 6px);height:12px;border-radius:2px}
+.person{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;height:34px;padding:0 12px;border:0;background:transparent;cursor:pointer;text-align:left}
+.person .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.person .q{font:500 12px var(--f-mono);color:var(--muted);flex:none}
+.ro .person{cursor:default}
+.bar-v{position:absolute;top:8px;height:18px}
+.bar-v.s{border-top-left-radius:5px;border-bottom-left-radius:5px}
+.bar-v.e{border-top-right-radius:5px;border-bottom-right-radius:5px}
+.bar-v.x{background:var(--warn)!important}
+
+.empty{padding:24px 16px;color:var(--muted);max-width:560px}
+.empty b{color:var(--ink);font-weight:500}
+.note{margin:0;color:var(--muted);font-size:13px;max-width:84ch}
+.info{margin:0;font-size:14px;min-height:1.45em}
+.info b{font-weight:600}
+.banner{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:12px 16px;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));max-width:min(560px,calc(100vw - 32px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;z-index:20;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+
+@media (max-width:640px){:root{--namecol:128px}.person{padding:0 8px}.stats b{font-size:17px}.day{height:52px}.blank{height:52px}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header>
+    <div class="title">
+      <h1>График отпусков</h1>
+      <p class="rules">Врачи и лаборанты МРТ и КТ. Норма — <b>35 дней</b>; праздничные дни внутри отпуска в неё не входят (ст. 120 ТК РФ), поэтому отрезок с 4 ноября или 12 июня длиннее на день. <span id="updated"></span></p>
+    </div>
+    <div class="year" aria-label="Год">
+      <button class="iconbtn" id="prev" aria-label="Предыдущий год">‹</button>
+      <output id="yearOut"></output>
+      <button class="iconbtn" id="next" aria-label="Следующий год">›</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <ul class="stats" id="stats"></ul>
+  <section class="roster" id="roster" aria-label="Сотрудники по группам"></section>
+
+  <div class="bar">
+    <div class="seg" id="viewSeg" role="group" aria-label="Вид">
+      <button data-view="cal">Календарь</button>
+      <button data-view="line">Шкала</button>
+    </div>
+    <div class="seg" id="filterSeg" role="group" aria-label="Группы в календаре"></div>
+    <button class="btn" id="copyBtn">Скопировать список</button>
+  </div>
+
+  <div class="selbar" id="selbar" hidden>
+    <span class="dot" id="selDot"></span>
+    <span class="txt" id="selTxt"></span>
+    <button class="btn small" id="selClear">Снять выбор</button>
+  </div>
+
+  <div class="legend">
+    <span>цвет — сотрудник из списка выше; нажмите на фамилию, чтобы выделить его отпуск</span>
+    <span id="lgLanes">в клетке дня по дорожке на группу: врачи МРТ, лаборанты МРТ, врачи КТ, лаборанты КТ</span>
+    <span><i class="lg-x"></i>в группе больше отпускников, чем разрешено</span>
+    <span><i class="lg-h">8</i>праздничный день</span>
+  </div>
+
+  <div id="calView"><div class="months" id="months"></div></div>
+  <div id="lineView" hidden><div class="frame" id="frame"><div class="sheet" id="sheet"></div></div></div>
+
+  <p class="info" id="dayInfo" aria-live="polite"></p>
+  <div class="toast" id="toast" hidden role="status"></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var DAY = 864e5, NCOL = 6;
+  var GROUPS = [
+    {id:"mri-doc",  t:"Врачи МРТ"},
+    {id:"mri-tech", t:"Лаборанты МРТ"},
+    {id:"ct-doc",   t:"Врачи КТ"},
+    {id:"ct-tech",  t:"Лаборанты КТ"}
+  ];
+  var GT = {}; GROUPS.forEach(function(g){ GT[g.id] = g.t; });
+  var HOL = {"1-1":1,"1-2":1,"1-3":1,"1-4":1,"1-5":1,"1-6":1,"1-7":1,"1-8":1,"2-23":1,"3-8":1,"5-1":1,"5-9":1,"6-12":1,"11-4":1};
+  var MONTHS = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
+  var DOWS = ["пн","вт","ср","чт","пт","сб","вс"];
+
+  function pad(n){ return String(n).padStart(2,"0"); }
+  function dn(t){ return Math.round(t / DAY); }
+  function dOf(n){ return new Date(n * DAY); }
+  function fmt(n){ var d = dOf(n); return pad(d.getUTCDate())+"."+pad(d.getUTCMonth()+1); }
+  function isHol(n){ var d = dOf(n); return !!HOL[(d.getUTCMonth()+1)+"-"+d.getUTCDate()]; }
+  function dow(n){ return (dOf(n).getUTCDay() + 6) % 7; }
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); }
+  function y0(y){ return dn(Date.UTC(y,0,1)); }
+  function y1(y){ return dn(Date.UTC(y+1,0,1)); }
+  function ruDate(s){
+    var m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(s.trim());
+    if (!m) return null;
+    var t = Date.UTC(+m[3], +m[2]-1, +m[1]), d = new Date(t);
+    return d.getUTCDate() === +m[1] && d.getUTCMonth() === +m[2]-1 ? dn(t) : null;
+  }
+  var badLines = [];
+  function parseVacations(name, arr){
+    var s = new Set();
+    (Array.isArray(arr) ? arr : []).forEach(function(v){
+      var parts = String(v).split(/\s*[-–—]\s*/), a = ruDate(parts[0] || ""), b = parts.length > 1 ? ruDate(parts[1]) : a;
+      if (a == null || b == null || b < a || b - a > 120){ badLines.push(name+": «"+v+"»"); return; }
+      for (var i = a; i <= b; i++) s.add(i);
+    });
+    return s;
+  }
+  function runsOf(set, lo, hi){
+    var days = Array.from(set).filter(function(n){ return n >= lo && n < hi; }).sort(function(a,b){ return a-b; });
+    var out = [];
+    days.forEach(function(n){ var l = out[out.length-1]; if (l && n === l[1]+1) l[1] = n; else out.push([n,n]); });
+    return out;
+  }
+  function counted(p, y){ var lo = y0(y), hi = y1(y), n = 0; p.days.forEach(function(d){ if (d >= lo && d < hi && !isHol(d)) n++; }); return n; }
+
+  var now = new Date();
+  var today = dn(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  var years = [], year = now.getFullYear(), view = "cal", filter = "all", selected = null;
+  var staff = [], limits = {}, state = "loading";
+  try {
+    var sv = localStorage.getItem("vac-view"); if (sv === "cal" || sv === "line") view = sv;
+    var sf = localStorage.getItem("vac-filter"); if (sf && (sf === "all" || GT[sf])) filter = sf;
+  } catch(e){}
+  var $ = function(id){ return document.getElementById(id); };
+  function store(k, v){ try { localStorage.setItem(k, String(v)); } catch(e){} }
+  function limitOf(g){ var v = Number(limits[g]); return v >= 1 && v <= 20 ? v : 1; }
+
+  $("filterSeg").innerHTML = "<button data-filter=\"all\">Все группы</button>" + GROUPS.map(function(g){ return "<button data-filter=\""+g.id+"\">"+g.t+"</button>"; }).join("");
+
+  var toastTimer;
+  function toast(msg){ var el = $("toast"); el.textContent = msg; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(function(){ el.hidden = true; }, 4200); }
+  function groupMembers(g){
+    return staff.filter(function(p){
+      var gs = p.groups.filter(function(x){ return GT[x]; });
+      return g === "other" ? gs.length === 0 : gs.indexOf(g) >= 0;
+    });
+  }
+  function byId(id){ return staff.find(function(x){ return x.id === id; }); }
+
+  function derive(){
+    var lo = y0(year), hi = y1(year);
+    var groups = GROUPS.slice();
+    if (groupMembers("other").length) groups.push({id:"other", t:"Без группы"});
+    var members = {}, color = {}, gcount = {}, clashDays = 0;
+    groups.forEach(function(g){
+      var ms = groupMembers(g.id); members[g.id] = ms;
+      ms.forEach(function(p, i){ color[g.id+"|"+p.id] = "var(--p"+(i % NCOL)+")"; });
+      var c = new Map();
+      ms.forEach(function(p){ p.days.forEach(function(d){ if (d >= lo && d < hi) c.set(d, (c.get(d)||0)+1); }); });
+      gcount[g.id] = c;
+      var lim = limitOf(g.id); c.forEach(function(v){ if (v > lim) clashDays++; });
+    });
+    return {lo:lo, hi:hi, groups:groups, members:members, color:color, gcount:gcount, clashDays:clashDays};
+  }
+  function colorOf(ctx, p){ var g = p.groups.find(function(x){ return ctx.members[x]; }) || "other"; return ctx.color[g+"|"+p.id] || "var(--p0)"; }
+  function clashAt(ctx, p, d){ return p.groups.some(function(g){ var c = ctx.gcount[g]; return c && (c.get(d)||0) > limitOf(g); }); }
+
+  function render(){
+    var ctx = derive();
+    $("yearOut").textContent = year;
+    var yi = years.indexOf(year);
+    $("prev").hidden = $("next").hidden = years.length < 2;
+    $("prev").disabled = yi <= 0; $("next").disabled = yi < 0 || yi >= years.length - 1;
+
+    var banner = $("banner");
+    if (state === "error"){ banner.hidden = false; banner.textContent = "Не удалось загрузить график. Обновите страницу; если не поможет — проверьте файл data.json в репозитории (запятые и кавычки)."; }
+    else if (badLines.length){ banner.hidden = false; banner.textContent = "Не разобраны даты в data.json: "+badLines.join("; ")+". Формат: ДД.ММ.ГГГГ - ДД.ММ.ГГГГ."; }
+    else banner.hidden = true;
+
+    var used = 0, quota = 0, short = 0;
+    staff.forEach(function(p){ var u = counted(p, year); used += u; quota += p.quota; if (u < p.quota) short++; });
+    $("stats").innerHTML = state === "ready" && staff.length ? (
+      "<li><b>"+staff.length+"</b> сотрудников</li>"+
+      "<li><b>"+used+"</b> из "+quota+" дней распределено</li>"+
+      "<li><b>"+short+"</b> не добрали норму</li>"+
+      "<li><b class=\""+(ctx.clashDays?"alert":"")+"\">"+ctx.clashDays+"</b> дн. сверх лимита в группах</li>"
+    ) : "";
+
+    renderRoster(ctx);
+    Array.prototype.forEach.call($("viewSeg").children, function(b){ b.setAttribute("aria-pressed", b.dataset.view === view); });
+    Array.prototype.forEach.call($("filterSeg").children, function(b){ b.setAttribute("aria-pressed", b.dataset.filter === filter); });
+    $("filterSeg").hidden = view !== "cal";
+    $("lgLanes").hidden = view !== "cal" || filter !== "all";
+    $("calView").hidden = view !== "cal";
+    $("lineView").hidden = view !== "line";
+
+    var sp = selected && byId(selected);
+    $("selbar").hidden = !sp;
+    if (sp){
+      $("selDot").style.background = colorOf(ctx, sp);
+      $("selTxt").innerHTML = "Выделен отпуск: <b>"+esc(sp.name)+"</b>, "+counted(sp, year)+" из "+sp.quota+" дн.";
+    }
+    if (view === "cal") renderCalendar(ctx); else renderTimeline(ctx);
+  }
+
+  function renderRoster(ctx){
+    if (state !== "ready" || !staff.length){
+      $("roster").innerHTML = "<div class=\"rg\"><div class=\"empty\" style=\"padding:8px 4px\">"+(state === "loading" ? "Загружаю график…" : state === "error" ? "График не загрузился." : "В графике пока никого нет.")+"</div></div>";
+      return;
+    }
+    var h = "";
+    ctx.groups.forEach(function(g){
+      var ms = ctx.members[g.id]; if (!ms.length && g.id === "other") return;
+      var lim = limitOf(g.id), clash = 0; ctx.gcount[g.id].forEach(function(v){ if (v > lim) clash++; });
+      h += "<div class=\"rg\"><div class=\"rg-h\"><span class=\"gname\">"+esc(g.t)+"</span>";
+      if (g.id !== "other") h += "<span class=\"lim\">не больше <output>"+lim+"</output> одновременно"+(clash ? " · <b style=\"color:var(--warn);font-weight:600\">"+clash+" дн. сверх</b>" : "")+"</span>";
+      h += "</div><div class=\"chips\">";
+      if (!ms.length) h += "<span class=\"note\">Нет сотрудников</span>";
+      ms.forEach(function(p){
+        var u = counted(p, year), qc = u > p.quota ? "over" : u === p.quota ? "full" : "";
+        h += "<div class=\"chip\"><button class=\"pick\" data-pick=\""+esc(p.id)+"\" aria-pressed=\""+(selected===p.id)+"\" title=\""+esc(p.name)+": "+u+" из "+p.quota+" дней\">"+
+          "<i class=\"dot\" style=\"background:"+ctx.color[g.id+"|"+p.id]+"\"></i><span class=\"nm\">"+esc(p.name)+"</span><span class=\"q "+qc+"\">"+u+"/"+p.quota+"</span></button></div>";
+      });
+      h += "</div></div>";
+    });
+    $("roster").innerHTML = h;
+  }
+
+  function renderCalendar(ctx){
+    var vis = filter === "all" ? ctx.groups : ctx.groups.filter(function(g){ return g.id === filter; });
+    var h = "";
+    for (var m = 0; m < 12; m++){
+      var first = dn(Date.UTC(year,m,1)), last = dn(Date.UTC(year,m+1,1)), offCount = 0;
+      for (var d0 = first; d0 < last; d0++){ if (vis.some(function(g){ return (ctx.gcount[g.id].get(d0)||0) > 0; })) offCount++; }
+      h += "<section class=\"month\"><h3>"+MONTHS[m]+"<small>"+(offCount ? "отпуск в "+offCount+" дн." : "без отпусков")+"</small></h3>";
+      h += "<div class=\"dows\">"+DOWS.map(function(x){ return "<span>"+x+"</span>"; }).join("")+"</div><div class=\"days\">";
+      for (var b = 0; b < dow(first); b++) h += "<span class=\"blank\"></span>";
+      for (var d = first; d < last; d++){
+        var cls = "day", names = [], x = false, pickOn = false, lanes = "";
+        if (dow(d) >= 5) cls += " we";
+        if (isHol(d)) cls += " hol";
+        if (d === today) cls += " today";
+        vis.forEach(function(g){
+          var off = ctx.members[g.id].filter(function(p){ return p.days.has(d); });
+          if (off.length > limitOf(g.id)) x = true;
+          lanes += "<span class=\"lane\">"+off.map(function(p){
+            names.push(p.name);
+            if (p.id === selected) pickOn = true;
+            return "<i"+(selected && p.id !== selected ? " class=\"dim\"" : "")+" style=\"background:"+ctx.color[g.id+"|"+p.id]+"\"></i>";
+          }).join("")+"</span>";
+        });
+        if (x) cls += " x";
+        if (pickOn) cls += " pick-on";
+        var uniq = names.filter(function(n, i){ return names.indexOf(n) === i; });
+        var title = DOWS[dow(d)]+" "+fmt(d)+(isHol(d)?" · праздник":"")+(uniq.length ? ": "+uniq.join(", ") : "");
+        h += "<button class=\""+cls+"\" data-day=\""+d+"\" title=\""+esc(title)+"\" aria-label=\""+esc(title)+"\"><span class=\"n\">"+dOf(d).getUTCDate()+"</span><span class=\"lanes\">"+lanes+"</span></button>";
+      }
+      h += "</div></section>";
+    }
+    $("months").innerHTML = h;
+  }
+
+  function renderTimeline(ctx){
+    var D = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--d")) || 4;
+    var lo = ctx.lo, hi = ctx.hi, N = hi - lo, frame = $("frame");
+    var trackStyle = "width:"+(N*D)+"px";
+    var wkOffset = ((7 - dow(lo)) % 7) * D;
+    var h = "<div class=\"row hrow\"><div class=\"stick\">"+year+"</div><div class=\"track\" style=\""+trackStyle+"\">";
+    for (var m = 0; m < 12; m++){
+      var a = dn(Date.UTC(year,m,1)) - lo, b = dn(Date.UTC(year,m+1,1)) - lo;
+      h += "<div class=\"mo\" style=\"left:"+(a*D)+"px;width:"+((b-a)*D)+"px\">"+MONTHS[m]+"</div>";
+    }
+    h += "</div></div><div class=\"row wrow\"><div class=\"stick\">понедельник</div><div class=\"track\" style=\""+trackStyle+"\">";
+    for (var d = lo; d < hi; d++){
+      if (dow(d) === 0){ var isNow = today >= d && today < d + 7; h += "<div class=\"wk"+(isNow?" now":"")+"\" style=\"left:"+((d-lo)*D)+"px\" title=\""+fmt(d)+"–"+fmt(d+6)+"\"><span>"+dOf(d).getUTCDate()+"</span></div>"; }
+      if (isHol(d)) h += "<div class=\"hd\" style=\"left:"+((d-lo)*D)+"px\" title=\""+fmt(d)+" — праздничный день\"></div>";
+    }
+    h += "</div></div>";
+    if (state === "ready"){
+      ctx.groups.forEach(function(g){
+        var ms = ctx.members[g.id]; if (!ms.length && g.id === "other") return;
+        var lim = limitOf(g.id), c = ctx.gcount[g.id];
+        h += "<div class=\"row grow-h\"><div class=\"stick\"><span class=\"gname\">"+esc(g.t)+"</span></div><div class=\"track\" style=\""+trackStyle+"\">";
+        var run = null;
+        for (var d = lo; d <= hi; d++){
+          var v = d < hi ? (c.get(d) || 0) : 0, k = v === 0 ? 0 : v > lim ? 2 : 1;
+          if (run && run.k === k && d < hi){ run.b = d; continue; }
+          if (run && run.k) h += "<div class=\"cov"+(run.k===2?" x":"")+"\" style=\"left:"+((run.a-lo)*D)+"px;width:"+((run.b-run.a+1)*D)+"px\" title=\""+fmt(run.a)+"–"+fmt(run.b)+": "+(run.k===2?"больше "+lim+" в отпуске":"в отпуске")+"\"></div>";
+          run = {a:d, b:d, k:k};
+        }
+        h += "</div></div>";
+        ms.forEach(function(p){
+          var u = counted(p, year), col = ctx.color[g.id+"|"+p.id];
+          h += "<div class=\"row prow\"><div class=\"stick\"><div class=\"person\" title=\""+esc(p.name)+": "+u+" из "+p.quota+" дней\"><span class=\"nm\">"+esc(p.name)+"</span><span class=\"q\">"+u+"/"+p.quota+"</span></div></div>";
+          h += "<div class=\"track\" style=\""+trackStyle+";background-position:"+wkOffset+"px center\">";
+          runsOf(p.days, lo, hi).forEach(function(r){
+            var hol = 0; for (var i = r[0]; i <= r[1]; i++) if (isHol(i)) hol++;
+            var tip = esc(p.name)+": "+fmt(r[0])+"–"+fmt(r[1])+", "+(r[1]-r[0]+1)+" дн."+(hol?" (праздничных "+hol+")":"");
+            var seg = null;
+            for (var i = r[0]; i <= r[1] + 1; i++){
+              var x = i <= r[1] && clashAt(ctx, p, i);
+              if (seg && seg.x === x && i <= r[1]){ seg.b = i; continue; }
+              if (seg){
+                var cls = "bar-v"+(seg.x?" x":"")+(seg.a===r[0] && !p.days.has(r[0]-1) ? " s":"")+(seg.b===r[1] && !p.days.has(r[1]+1) ? " e":"");
+                h += "<div class=\""+cls+"\" style=\"left:"+((seg.a-lo)*D)+"px;width:"+((seg.b-seg.a+1)*D)+"px;background:"+col+"\" title=\""+tip+(seg.x?" · превышен лимит группы":"")+"\"></div>";
+              }
+              seg = {a:i, b:i, x:x};
+            }
+          });
+          h += "</div></div>";
+        });
+      });
+    }
+    for (var m2 = 1; m2 < 12; m2++) h += "<div class=\"mline\" style=\"left:calc(var(--namecol) + "+((dn(Date.UTC(year,m2,1))-lo)*D)+"px)\"></div>";
+    if (today >= lo && today < hi) h += "<div class=\"tline\" style=\"left:calc(var(--namecol) + "+((today-lo)*D)+"px)\" title=\"Сегодня\"></div>";
+    var sl = frame.scrollLeft;
+    $("sheet").innerHTML = h;
+    frame.scrollLeft = sl;
+  }
+
+  function showDay(d){
+    var ctx = derive(), parts = [];
+    ctx.groups.forEach(function(g){
+      var off = ctx.members[g.id].filter(function(p){ return p.days.has(d); });
+      if (off.length) parts.push(esc(g.t)+": "+off.map(function(p){ return "<b>"+esc(p.name)+"</b>"; }).join(", ")+(off.length > limitOf(g.id) ? " <span style=\"color:var(--warn)\">— больше лимита</span>" : ""));
+    });
+    $("dayInfo").innerHTML = DOWS[dow(d)]+" "+fmt(d)+"."+(isHol(d)?" Праздник.":"")+" "+(parts.length ? parts.join("; ") : "Все на месте.");
+  }
+
+  $("roster").addEventListener("click", function(ev){
+    var b = ev.target.closest("button[data-pick]"); if (!b) return;
+    selected = selected === b.dataset.pick ? null : b.dataset.pick; render();
+  });
+  $("months").addEventListener("click", function(ev){ var b = ev.target.closest(".day"); if (b) showDay(Number(b.dataset.day)); });
+  $("viewSeg").addEventListener("click", function(ev){ var b = ev.target.closest("button"); if (!b) return; view = b.dataset.view; store("vac-view", view); $("dayInfo").textContent = ""; render(); });
+  $("filterSeg").addEventListener("click", function(ev){ var b = ev.target.closest("button"); if (!b) return; filter = b.dataset.filter; store("vac-filter", filter); render(); });
+  $("selClear").addEventListener("click", function(){ selected = null; render(); });
+  function step(k){ var i = years.indexOf(year) + k; if (i >= 0 && i < years.length){ year = years[i]; $("dayInfo").textContent = ""; render(); $("frame").scrollLeft = 0; } }
+  $("prev").addEventListener("click", function(){ step(-1); });
+  $("next").addEventListener("click", function(){ step(1); });
+  document.addEventListener("keydown", function(e){ if (e.key === "Escape" && selected){ selected = null; render(); } });
+
+  function listText(){
+    var lo = y0(year), hi = y1(year), lines = ["График отпусков, "+year];
+    GROUPS.forEach(function(g){
+      var ms = groupMembers(g.id); if (!ms.length) return;
+      lines.push("", g.t);
+      ms.forEach(function(p){
+        var rs = runsOf(p.days, lo, hi).map(function(r){
+          var hol = 0; for (var i = r[0]; i <= r[1]; i++) if (isHol(i)) hol++;
+          return fmt(r[0])+"–"+fmt(r[1])+" ("+(r[1]-r[0]+1)+" дн."+(hol?", вкл. праздничных "+hol:"")+")";
+        });
+        lines.push(p.name+" — "+(rs.length ? rs.join(", ") : "не распределено"));
+      });
+    });
+    return lines.join("\n");
+  }
+  $("copyBtn").addEventListener("click", function(){
+    if (!staff.length){ toast("Копировать пока нечего."); return; }
+    var text = listText(), done = function(){ toast("Список за "+year+" год скопирован."); };
+    var fallback = function(){
+      var ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select(); var ok = false; try { ok = document.execCommand("copy"); } catch(e){}
+      ta.remove(); ok ? done() : toast("Не удалось скопировать в этом окне.");
+    };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch(e){ fallback(); }
+  });
+
+  render();
+  fetch("data.json", {cache: "no-cache"}).then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); }).then(function(data){
+    limits = data.limits || {};
+    staff = (Array.isArray(data.staff) ? data.staff : []).map(function(x, i){
+      var name = String(x.name || "Без имени");
+      return {
+        id: "p"+i, name: name,
+        groups: Array.isArray(x.groups) ? x.groups.map(String) : [],
+        quota: Number.isFinite(x.quota) ? x.quota : 35,
+        days: parseVacations(name, x.vacations)
+      };
+    });
+    var ys = new Set();
+    staff.forEach(function(p){ p.days.forEach(function(d){ ys.add(dOf(d).getUTCFullYear()); }); });
+    years = Array.from(ys).sort();
+    if (!years.length) years = [now.getFullYear()];
+    year = years.indexOf(now.getFullYear()) >= 0 && now.getMonth() < 8 ? now.getFullYear()
+         : years.find(function(y){ return y > now.getFullYear(); }) || years[years.length-1];
+    if (data.updated) $("updated").textContent = "Обновлено "+String(data.updated)+".";
+    state = "ready"; render();
+  }).catch(function(){ state = "error"; render(); });
+})();
+</script>
+</body>
+</html>

@@ -445,7 +445,9 @@
     "ОБЪЁМ":  { inputs: ["Длина", "Ширина", "Высота"], digits: 1,      // эллипсоид, мм → мл
       f: (a, b, c) => 0.523 * a * b * c / 1000 },
     "КТИ":    { inputs: ["Сердце", "Грудь"], digits: 0,               // кардиоторакальный индекс, %
-      f: (heart, chest) => heart / chest * 100 }
+      f: (heart, chest) => heart / chest * 100 },
+    "ЭВАНС":  { inputs: ["Рога", "Череп"], digits: 2,                 // индекс Эванса: передние рога / внутренний поперечник черепа
+      f: (horns, skull) => horns / skull }
   };
 
   const INPUT_NAMES = new Set(Object.values(CALC).flatMap(c => c.inputs));

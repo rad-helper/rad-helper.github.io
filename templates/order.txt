@@ -40,6 +40,7 @@ xr-knee-tka.md
 xr-hip.md
 xr-hip-oa.md
 xr-hip-oa-both.md
+xr-hip-tha.md
 xr-hand.md
 xr-hand-cmc.md
 xr-hand-oa.md

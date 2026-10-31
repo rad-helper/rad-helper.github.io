@@ -31,8 +31,12 @@ xr-chest.md
 xr-chest-age.md
 xr-chest-supine.md
 xr-chest-full.md
+xr-spine-cervical.md
+xr-spine-cervical-short.md
 xr-spine-thoracic.md
 xr-spine-thoracic-short.md
+xr-spine-lumbar.md
+xr-spine-lumbar-short.md
 xr-knee.md
 xr-knee-oa.md
 xr-knee-oa-both.md

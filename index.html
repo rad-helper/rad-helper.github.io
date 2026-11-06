@@ -470,6 +470,16 @@
 
   // Площадь позвоночного канала на уровне диска, мм² (Schönström 1985): > 100 — норма, 75–100 — относительный стеноз, < 75 — абсолютный.
   // Для каждого уровня — поле [S L4–L5] и калькулятор {{S L4–L5}}; он сам ставит {#стеноз L4–L5: |относительный|абсолютный}.
+  // Стеноз ВСА по сторонам: поля [Dмин П] [Dдист П] [Dлук П] (и Л), калькуляторы {{NASCET П}}, {{ECST П}}.
+  // NASCET сам ставит {#градация П: незначимый|умеренный|выраженный}: < 50% — 0, 50–69% — 1, ≥ 70% — 2.
+  ["П", "Л"].forEach(side => {
+    CALC["NASCET " + side] = { inputs: ["Dмин " + side, "Dдист " + side], digits: 0,
+      f: (dmin, ddist) => (1 - dmin / ddist) * 100,
+      toggle: "градация " + side, pick: x => x < 50 ? 0 : x < 70 ? 1 : 2 };
+    CALC["ECST " + side] = { inputs: ["Dмин " + side, "Dлук " + side], digits: 0,
+      f: (dmin, dbulb) => (1 - dmin / dbulb) * 100 };
+  });
+
   ["L1–L2", "L2–L3", "L3–L4", "L4–L5", "L5–S1"].forEach(lvl => {
     CALC["S " + lvl] = { inputs: ["S " + lvl], digits: 0, f: s => s,
       toggle: "стеноз " + lvl, pick: x => x < 75 ? 2 : x <= 100 ? 1 : 0 };
@@ -483,8 +493,22 @@
     el.innerHTML = "";
     const parts = [], calcs = [], named = {}, toggles = {}, lists = [];
     const EMPTY = "\u0000";                     // пустой вариант: строка, где только он, при копировании исчезает
-    // {{калькулятор}} | {переключатель} — внутри него можно {{калькулятор}}, но не другой переключатель | [поле]
-    const re = /\{\{\s*([^{}]+?)\s*\}\}|\{((?:[^{}\n]|\{\{[^{}\n]*\}\})*\|(?:[^{}\n]|\{\{[^{}\n]*\}\})*)\}|\[([^\[\]\n]*)\]/g;
+    // {{калькулятор}} | {переключатель} — внутри него можно {{калькулятор}} и ещё один {переключатель} (одна вложенность) | [поле]
+    const CALC_RE = String.raw`\{\{[^{}\n]*\}\}`;
+    const INNER_RE = String.raw`\{(?:[^{}\n]|${CALC_RE})*\}`;                 // вложенный переключатель
+    const PART_RE = String.raw`(?:[^{}\n]|${CALC_RE}|${INNER_RE})*`;
+    const re = new RegExp(String.raw`\{\{\s*([^{}]+?)\s*\}\}|\{(${PART_RE}\|${PART_RE})\}|\[([^\[\]\n]*)\]`, "g");
+    // делит варианты по | только снаружи вложенных {…}
+    function splitTop(str) {
+      const res = []; let depth = 0, cur = "";
+      for (const ch of str) {
+        if (ch === "{") depth++;
+        if (ch === "}") depth--;
+        if (ch === "|" && depth === 0) { res.push(cur); cur = ""; } else cur += ch;
+      }
+      res.push(cur);
+      return res;
+    }
 
     function recalc() {
       calcs.forEach(c => {
@@ -522,11 +546,11 @@
       target.append(f);
     }
 
-    function toggle(inner, target, out) {                         // {а|б|в} или {#имя: а|б|в}
+    function toggle(inner, target, out, depth) {                         // {а|б|в} или {#имя: а|б|в}
       let name = null;
       const nm = inner.match(/^\s*#([^:|]+):\s*/);
       if (nm) { name = nm[1].trim(); inner = inner.slice(nm[0].length); }
-      const opts = inner.split("|").map(x => x.trim());
+      const opts = splitTop(inner).map(x => x.trim());
       // связаны переключатели с одним именем или с одинаковыми вариантами
       const key = name ? "#" + lower(name) : opts.join("|");
       const group = toggles[key] = toggles[key] || { i: 0, insts: [] };
@@ -538,7 +562,7 @@
         const span = document.createElement("span");
         const p = [];
         if (!o) { span.className = "opt-empty"; span.textContent = name ? "+ " + name : "—"; }
-        else parse(o, span, p, false);
+        else parse(o, span, p, depth + 1);
         wrap.append(span);
         return { span, p, empty: !o };
       });
@@ -552,7 +576,8 @@
         group.i = (group.i + 1) % Math.max(...group.insts.map(g => g.views.length));
         show();
       };
-      wrap.addEventListener("click", e => { if (!e.target.closest("input")) next(); });
+      // клик по вложенному переключателю меняет только его
+      wrap.addEventListener("click", e => { if (!e.target.closest("input") && e.target.closest(".tg") === wrap) next(); });
       wrap.addEventListener("keydown", e => {
         if (e.target === wrap && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); next(); }
       });
@@ -579,7 +604,7 @@
       target.append(span);
     }
 
-    function parse(str, target, out, top) {
+    function parse(str, target, out, depth) {          // depth: 0 — текст шаблона, 1 — внутри переключателя, 2 — внутри вложенного
       re.lastIndex = 0;
       const found = [];
       let m;
@@ -603,8 +628,8 @@
             calcs.push(c); out.push(() => c.value || "[__]");
           }
           target.append(span);
-        } else if (tg !== undefined && top) {
-          toggle(tg, target, out);
+        } else if (tg !== undefined && depth < 2) {
+          toggle(tg, target, out, depth);
         } else if (fld !== undefined) {
           field(fld, target, out);
         } else {                                                  // скобки, которые здесь не работают, — как текст
@@ -614,7 +639,7 @@
       if (last < str.length) { const t = str.slice(last); target.append(t); out.push(() => t); }
     }
 
-    parse(text, el, parts, true);
+    parse(text, el, parts, 0);
     recalc();
     lists.forEach(f => f());
     return {

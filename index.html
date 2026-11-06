@@ -575,6 +575,14 @@
       toggle: "стеноз " + lvl, pick: x => x < 75 ? 2 : x <= 100 ? 1 : 0 };
   });
 
+  // КТ-перфузия: межполушарные отношения по бассейнам. Поля [СМА CBF П] и [СМА CBF Л] (и ПМА, ЗМА; CBF, CBV, MTT),
+  // калькуляторы {{СМА CBF П/Л}} и {{СМА CBF Л/П}} — в шаблоне стоят внутри переключателя {#сторона: …}, копируется видимый.
+  ["ПМА", "СМА", "ЗМА"].forEach(t => ["CBF", "CBV", "MTT"].forEach(m => {
+    const r = t + " " + m + " П", l = t + " " + m + " Л";
+    CALC[t + " " + m + " П/Л"] = { inputs: [r, l], digits: 2, f: (a, b) => a / b };
+    CALC[t + " " + m + " Л/П"] = { inputs: [l, r], digits: 2, f: (a, b) => a / b };
+  }));
+
   const INPUT_NAMES = new Set(Object.values(CALC).flatMap(c => c.inputs));
   const num = v => parseFloat(String(v).replace(",", "."));
   const fmt = (x, d) => x.toFixed(d).replace(".", ",");

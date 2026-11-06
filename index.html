@@ -125,6 +125,37 @@
   .reset { height: 38px; padding: 0 10px; border: 0; background: transparent; color: var(--muted);
     font-size: 0.85rem; cursor: pointer; }
   .sheet-bar .btns { display: flex; gap: 4px; align-items: center; }
+  /* Находки (tools/*.md): ввёл признаки — получил вывод и диф ряд, в заключение не копируется */
+  .finding .sheet-bar { background: var(--warn-bg); color: var(--warn); }
+  .fx { padding: 10px 14px 12px; font-size: 0.92rem; }
+  .fx-intro { margin: 0 0 10px; color: var(--muted); font-size: 0.85rem; }
+  .fx-form { display: flex; flex-direction: column; gap: 8px; }
+  .fx-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+  .fx-label { flex: 0 0 210px; color: var(--muted); font-size: 0.85rem; }
+  .fx-num { width: 90px; height: 36px; padding: 0 8px; font-size: 16px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--bg); color: var(--ink); }
+  .fx-num:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  .fx-opts { display: flex; flex-wrap: wrap; gap: 4px; }
+  .fx-opt { min-height: 34px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px;
+    background: transparent; color: var(--ink); font-size: 0.85rem; cursor: pointer; }
+  .fx-opt[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .fx-calc { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 10px 0 0; font-size: 0.85rem; color: var(--muted); }
+  .fx-calc:empty { display: none; }
+  .fx-val b { color: var(--accent); }
+  .fx-verdict { margin: 12px 0 0; padding: 10px 12px; border-left: 3px solid var(--accent); background: var(--head); border-radius: 0 8px 8px 0; }
+  .fx-h { margin: 14px 0 4px; font-size: 0.78rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .fx-notes { margin: 0; }
+  .fx-ddx { margin: 0; padding-left: 1.4em; }
+  .fx-ddx li { margin: 6px 0; }
+  .fx-ddx li.fx-down { opacity: .55; }
+  .fx-dx { font-weight: 600; }
+  .fx-must { margin-left: 8px; padding: 1px 6px; border-radius: 6px; font-size: 0.72rem; font-weight: 600;
+    background: var(--warn-bg); color: var(--warn); }
+  .fx-signs { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 0.82rem; }
+  .fx-pro { color: var(--accent); }
+  .fx-con { color: var(--err); }
+  .fx-note { font-size: 0.82rem; color: var(--muted); }
+  @media (max-width: 640px) { .fx-label { flex-basis: 100%; } }
   .hints-h { margin: 6px 0 -4px; font-size: 0.78rem; font-weight: 600; letter-spacing: .06em;
     text-transform: uppercase; color: var(--muted); }
   .study details.sec { margin: 0; }
@@ -178,12 +209,14 @@
   <p>Поругать автора: <a href="https://t.me/klatrinsky" target="_blank" rel="noopener">Telegram</a> · <a href="mailto:klatrinsky@gmail.com?subject=rad-helper%3A%20%D0%B7%D0%B0%D0%BC%D0%B5%D1%87%D0%B0%D0%BD%D0%B8%D0%B5">Email</a></p>
 </footer>
 <div class="toast" id="toast" hidden></div>
+<script src="findings.js"></script>
 
 <script>
 /* =====================================================================
    Менять этот файл не нужно.
    Тексты лежат в папке ru/, порядок разделов — в ru/order.txt.
    Шаблоны заключений — в папке templates/, порядок — в templates/order.txt.
+   Находки («что я нашёл») — в папке tools/, порядок — в tools/order.txt, движок — findings.js.
    Как оформлять тексты — см. README.md в корне репозитория.
    ===================================================================== */
 (function () {
@@ -342,6 +375,28 @@
     };
   }
 
+  // Находка (tools/*.md): та же шапка, но «Находка:» вместо «Исследование:»
+  function readTool(f, t) {
+    const lines = t.replace(/\r/g, "").split("\n");
+    const cut = lines.findIndex(l => l.trim() === "---");
+    if (cut < 0 || !window.RH_FINDINGS) return null;
+    const meta = {};
+    lines.slice(0, cut).forEach(l => {
+      const m = l.match(/^\s*([^:#]+):\s*(.*)$/);
+      if (m) meta[lower(m[1].trim())] = m[2].trim();
+    });
+    const title = meta["находка"];
+    if (!title) return null;
+    return {
+      f, study: title, text: "", kind: "tool",
+      tool: window.RH_FINDINGS.parse(lines.slice(cut + 1).join("\n")),
+      variant: "Находка",
+      modality: "Находка" + (meta["модальность"] ? " · " + meta["модальность"] : ""),
+      hints: (meta["подсказки"] || "").split(/[,\s]+/).map(s => s.replace(/\.md$/i, "")).filter(Boolean),
+      words: tokens([title, meta["модальность"], meta["слова"]].join(" "))
+    };
+  }
+
   function score(words, v) {
     let s = 0;
     for (const w of words) {
@@ -354,10 +409,14 @@
   }
 
   function templates(sections) {
-    get_t("order.txt").then(txt => {
-      const files = txt.split("\n").map(s => s.trim()).filter(s => s && !s.startsWith("#"));
-      return Promise.all(files.map(f => get_t(f).then(t => readTemplate(f, t), () => null)));
-    }).then(list => {
+    const readList = (dir, read) => fetch(dir + "order.txt", { cache: "no-cache" })
+      .then(r => r.ok ? r.text() : "").then(txt => {
+        const files = txt.split("\n").map(s => s.trim()).filter(s => s && !s.startsWith("#"));
+        return Promise.all(files.map(f => fetch(dir + f, { cache: "no-cache" })
+          .then(r => r.ok ? r.text() : null).then(t => t === null ? null : read(f, t), () => null)));
+      }, () => []);
+    Promise.all([readList(TDIR, readTemplate), readList("tools/", readTool)]).then(([tl, fl]) => {
+      const list = tl.concat(fl);
       const variants = list.filter(Boolean);
       if (!variants.length) return;
       const studies = [];
@@ -393,14 +452,18 @@
           "<h2>" + esc(s.title) + (s.modality ? "<small>" + esc(s.modality) + "</small>" : "") + "</h2>" +
           (s.variants.length > 1 ? '<div class="tabs" role="tablist">' + s.variants.map((x, i) =>
             '<button type="button" class="tab" role="tab" data-v="' + i + '" aria-selected="' + (i === vi) + '">' + esc(x.variant) + "</button>").join("") + "</div>" : "") +
-          '<div class="sheet"><div class="sheet-bar"><span>Шаблон · ' + esc(v.variant) + '</span>' +
-          '<span class="btns"><button type="button" class="reset">Сбросить</button>' +
-          '<button type="button" class="copy">Скопировать</button></span></div><div class="tpl"></div></div>' +
+          (v.kind === "tool"
+            ? '<div class="sheet finding"><div class="sheet-bar"><span>Повод задуматься · в заключение не копируется</span>' +
+              '<span class="btns"><button type="button" class="reset">Сбросить</button></span></div><div class="fx"></div></div>'
+            : '<div class="sheet"><div class="sheet-bar"><span>Шаблон · ' + esc(v.variant) + '</span>' +
+              '<span class="btns"><button type="button" class="reset">Сбросить</button>' +
+              '<button type="button" class="copy">Скопировать</button></span></div><div class="tpl"></div></div>') +
           (v.hints.length ? '<div class="hints-h">Подсказки</div><div class="hints"></div>' : "");
-        const tpl = buildTemplate(v.text, studyEl.querySelector(".tpl"));
+        if (v.kind === "tool") window.RH_FINDINGS.render(v.tool, studyEl.querySelector(".fx"));
+        const tpl = v.kind === "tool" ? null : buildTemplate(v.text, studyEl.querySelector(".tpl"));
         studyEl.querySelectorAll(".pick").forEach(b => b.onclick = () => render(found, found[+b.dataset.i], 0));
         studyEl.querySelectorAll(".tab").forEach(b => b.onclick = () => render(found, s, +b.dataset.v));
-        studyEl.querySelector(".copy").onclick = () => copy(tpl.text());
+        if (tpl) studyEl.querySelector(".copy").onclick = () => copy(tpl.text());
         studyEl.querySelector(".reset").onclick = () => render(found, s, vi);
         const box = studyEl.querySelector(".hints");
         if (box) Promise.all(v.hints.map(hint)).then(texts => {

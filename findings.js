@@ -163,7 +163,7 @@ window.RH_FINDINGS = (function () {
       '<div class="fx-calc"></div><div class="fx-out"></div>' +
       (tool.src ? '<div class="fx-src"><div class="fx-src-h">Работает строго по источникам</div><ul>' +
         tool.src.replace(/^Источник:\s*/, "").split(/;\s+(?=[A-ZА-ЯЁ])/).map(x => "<li>" + inline(x.trim()) + "</li>").join("") +
-        "</ul></div>" : "");
+        '</ul><div class="fx-src-n">Пороги и тактика — по этим источникам. Диф ряд «Подумать о» — справочно, вне источников.</div></div>' : "");
 
     const calcEl = el.querySelector(".fx-calc");
     const outEl = el.querySelector(".fx-out");

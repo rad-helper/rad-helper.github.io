@@ -7,7 +7,9 @@
    Коротко:
      # Параметры   имя: Подпись = число            — поле для числа
                    имя: Подпись = а | б | в        — кнопки, первая выбрана по умолчанию
-     # Расчёты     имя: Подпись = формула           — + − * / ( ) и имена параметров
+     # Расчёты     имя: Подпись = формула           — + − * / ( ) и имена параметров;
+                                                    [условие] — 1, если выполнено, иначе 0;
+                                                    имя с _ в начале — считается, но не показывается
      # Вывод       - условие → текст                — срабатывает ПЕРВОЕ подходящее сверху
      # Учесть      - условие → текст                — показываются ВСЕ подходящие
      # Диф ряд     - Диагноз | ссылка               — «- ! Диагноз» = не пропустить
@@ -92,6 +94,8 @@ window.RH_FINDINGS = (function () {
 
   function evalExpr(expr, v) {
     let missing = false;
+    // [условие] → 1 или 0: так считают, сколько признаков есть
+    expr = expr.replace(/\[([^\]]+)\]/g, (_, c) => test(c, v) ? "1" : "0");
     const js = expr.replace(/[a-zа-яё_][\wа-яё]*/gi, name => {
       if (typeof v[name] !== "number") { missing = true; return "0"; }
       return "(" + v[name] + ")";
@@ -148,7 +152,7 @@ window.RH_FINDINGS = (function () {
     function update() {
       const v = values(tool, state);
 
-      calcEl.innerHTML = tool.calcs.filter(c => v[c.id] !== undefined).map(c =>
+      calcEl.innerHTML = tool.calcs.filter(c => v[c.id] !== undefined && c.id[0] !== "_").map(c =>
         '<span class="fx-val">' + esc(c.label) + ": <b>" + String(Math.round(v[c.id])) + "</b></span>").join("");
 
       const rule = tool.rules.find(r => test(r.cond, v));

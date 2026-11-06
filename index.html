@@ -44,6 +44,8 @@
   .note { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--warn-bg);
     color: var(--warn); font-size: 0.85rem; }
   .note p { margin: 4px 0; }
+  .alert { padding: 10px 12px; border-radius: 10px; border: 2px solid var(--err);
+    color: var(--err); font-size: 0.95rem; font-weight: 700; line-height: 1.4; }
   .err { margin: 10px 0; padding: 10px 12px; border-radius: 10px; border: 1px dashed var(--err);
     color: var(--err); font-size: 0.85rem; }
 
@@ -388,6 +390,7 @@
       f, study, text,
       variant: meta["вариант"] || "Основной",
       modality: meta["модальность"] || "",
+      alert: meta["внимание"] || "",
       hints: (meta["подсказки"] || "").split(/[,\s]+/).map(s => s.replace(/\.md$/i, "")).filter(Boolean),
       words: tokens([study, meta["вариант"], meta["модальность"], meta["слова"]].join(" "))
     };
@@ -473,7 +476,8 @@
           (v.kind === "tool"
             ? '<div class="sheet finding"><div class="sheet-bar"><span>Повод задуматься · в заключение не копируется</span>' +
               '<span class="btns"><button type="button" class="reset">Сбросить</button></span></div><div class="fx"></div></div>'
-            : '<div class="sheet"><div class="sheet-bar"><span>Шаблон · ' + esc(v.variant) + '</span>' +
+            : (v.alert ? '<div class="alert">' + esc(v.alert) + '</div>' : "") +
+              '<div class="sheet"><div class="sheet-bar"><span>Шаблон · ' + esc(v.variant) + '</span>' +
               '<span class="btns"><button type="button" class="reset">Сбросить</button>' +
               '<button type="button" class="copy">Скопировать</button></span></div><div class="tpl"></div></div>') +
           (v.hints.length ? '<div class="hints-h">Подсказки</div><div class="hints"></div>' : "");

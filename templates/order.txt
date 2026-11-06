@@ -23,8 +23,10 @@ ct-pelvis-f.md
 cta-legs.md
 cta-legs-short.md
 cta-legs-aaa.md
-ct-spine.md
-ct-spine-short.md
+ct-spine-cervical.md
+ct-spine-thoracic.md
+ct-spine-lumbar.md
+#ct-spine.md
 
 # Рентген
 xr-chest.md

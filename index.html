@@ -440,6 +440,9 @@
        [Dмин]                      — поле для калькулятора (имя из списка CALC ниже)
        {{NASCET}}                  — посчитанное значение; можно и внутри переключателя:
                                      {норма|расширена, КТИ {{КТИ}}%}
+       {{ПЕРЕЧЕНЬ: L4–L5, L5–S1 | 2 | Протрузия диска *. | Протрузии дисков *.}}
+                                   — склейка: имена переключателей {#L4–L5: ...}, у которых выбран вариант №2,
+                                     через запятую вместо *; одно — первая фраза, несколько — вторая; ни одного — строки нет
   */
 
   // Калькуляторы. Чтобы добавить свой: имя, какие поля нужны, формула и сколько знаков после запятой.
@@ -462,13 +465,20 @@
       toggle: "остеопороз", pick: x => x <= 110 ? 1 : 0 }
   };
 
+  // Площадь позвоночного канала на уровне диска, мм² (Schönström 1985): > 100 — норма, 75–100 — относительный стеноз, < 75 — абсолютный.
+  // Для каждого уровня — поле [S L4–L5] и калькулятор {{S L4–L5}}; он сам ставит {#стеноз L4–L5: |относительный|абсолютный}.
+  ["L1–L2", "L2–L3", "L3–L4", "L4–L5", "L5–S1"].forEach(lvl => {
+    CALC["S " + lvl] = { inputs: ["S " + lvl], digits: 0, f: s => s,
+      toggle: "стеноз " + lvl, pick: x => x < 75 ? 2 : x <= 100 ? 1 : 0 };
+  });
+
   const INPUT_NAMES = new Set(Object.values(CALC).flatMap(c => c.inputs));
   const num = v => parseFloat(String(v).replace(",", "."));
   const fmt = (x, d) => x.toFixed(d).replace(".", ",");
 
   function buildTemplate(text, el) {
     el.innerHTML = "";
-    const parts = [], calcs = [], named = {}, toggles = {};
+    const parts = [], calcs = [], named = {}, toggles = {}, lists = [];
     const EMPTY = "\u0000";                     // пустой вариант: строка, где только он, при копировании исчезает
     // {{калькулятор}} | {переключатель} — внутри него можно {{калькулятор}}, но не другой переключатель | [поле]
     const re = /\{\{\s*([^{}]+?)\s*\}\}|\{((?:[^{}\n]|\{\{[^{}\n]*\}\})*\|(?:[^{}\n]|\{\{[^{}\n]*\}\})*)\}|\[([^\[\]\n]*)\]/g;
@@ -531,7 +541,10 @@
       });
       const inst = { views };
       group.insts.push(inst);
-      const show = group.show = () => group.insts.forEach(g => g.views.forEach((v, k) => { v.span.hidden = k !== group.i % g.views.length; }));
+      const show = group.show = () => {
+        group.insts.forEach(g => g.views.forEach((v, k) => { v.span.hidden = k !== group.i % g.views.length; }));
+        lists.forEach(f => f());                                  // переключатель сменился — пересобрать перечни
+      };
       const next = () => {
         group.i = (group.i + 1) % Math.max(...group.insts.map(g => g.views.length));
         show();
@@ -548,6 +561,21 @@
       target.append(wrap);
     }
 
+    function list(spec, target, out) {
+      const [names, n, one, many] = spec.split("|").map(x => x.trim());
+      const items = names.split(",").map(x => x.trim()).filter(Boolean);
+      const span = document.createElement("span");
+      span.className = "calc";
+      let text = "";
+      lists.push(() => {
+        const on = items.filter(x => { const g = toggles["#" + lower(x)]; return g && g.i === +n - 1; });
+        text = on.length ? (on.length > 1 ? many : one).replace("*", on.join(", ")) : "";
+        span.textContent = text;
+      });
+      out.push(() => text || EMPTY);
+      target.append(span);
+    }
+
     function parse(str, target, out, top) {
       re.lastIndex = 0;
       const found = [];
@@ -557,7 +585,9 @@
       for (const [start, end, calc, tg, fld, raw] of found) {
         if (start > last) { const t = str.slice(last, start); target.append(t); out.push(() => t); }
         last = end;
-        if (calc !== undefined) {                                 // {{КАЛЬКУЛЯТОР}}, в том числе внутри переключателя
+        if (calc !== undefined && /^перечень\s*:/i.test(calc)) {  // {{ПЕРЕЧЕНЬ: имена | № варианта | одно | несколько}}
+          list(calc.replace(/^перечень\s*:/i, ""), target, out);
+        } else if (calc !== undefined) {                          // {{КАЛЬКУЛЯТОР}}, в том числе внутри переключателя
           const key = Object.keys(CALC).find(k => lower(k) === lower(calc));
           const span = document.createElement("span");
           span.className = "calc";
@@ -583,6 +613,7 @@
 
     parse(text, el, parts, true);
     recalc();
+    lists.forEach(f => f());
     return {
       text: () => parts.map(p => p()).join("")
         .split("\n").filter(l => !(l.includes(EMPTY) && !l.replace(/\u0000/g, "").trim())).join("\n")

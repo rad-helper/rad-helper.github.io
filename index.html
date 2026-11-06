@@ -135,6 +135,8 @@
 
   .empty { text-align: center; color: var(--muted); padding: 24px 0; }
   footer { color: var(--muted); font-size: 0.8rem; padding: 16px 0 max(32px, env(safe-area-inset-bottom)); }
+  footer p { margin: 0 0 4px; }
+  footer a { color: inherit; }
 
   /* Стартовая страница: только строка поиска */
   body.home header.top { position: static; border-bottom: 0; padding-top: 30vh; }
@@ -171,7 +173,10 @@
   <p class="empty" id="none" hidden>Ничего не найдено.</p>
 </main>
 
-<footer class="wrap">Справочный материал для врачей и ординаторов, не клиническая рекомендация.</footer>
+<footer class="wrap">
+  <p>Справочный материал для врачей и ординаторов, не клиническая рекомендация.</p>
+  <p>Поругать автора: <a href="https://t.me/klatrinsky" target="_blank" rel="noopener">Telegram</a> · <a href="mailto:klatrinsky@gmail.com?subject=rad-helper%3A%20%D0%B7%D0%B0%D0%BC%D0%B5%D1%87%D0%B0%D0%BD%D0%B8%D0%B5">Email</a></p>
+</footer>
 <div class="toast" id="toast" hidden></div>
 
 <script>

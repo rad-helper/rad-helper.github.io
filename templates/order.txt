@@ -9,6 +9,7 @@ ct-sinus.md
 ct-temporal.md
 cta-bca.md
 cta-bca-stenosis.md
+ct-perfusion.md
 ct-chest.md
 ct-chest-short.md
 ct-chest-ldct.md

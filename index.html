@@ -184,6 +184,18 @@
   body.home #q:focus { outline: none; border-color: var(--accent); }
   body.home main { display: none; }
 
+  /* «Что нового» под строкой поиска — только на пустой главной. Текст — в news.md */
+  .news { display: none; }
+  body.home .news:not([hidden]) { display: block; max-width: 620px; margin: 18px auto 0; padding: 0 16px;
+    color: var(--muted); font-size: 0.85rem; line-height: 1.45; }
+  .news h2 { margin: 0 0 6px; font-size: 0.78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .news ul { margin: 0; padding-left: 1.1em; }
+  .news li { margin: 3px 0; }
+  /* на невысоких экранах поднять всё выше, чтобы «Что нового» не залезало под подвал */
+  body.home { padding-bottom: 72px; }
+  @media (max-height: 760px) { body.home header.top { padding-top: 12vh; } }
+  .news .try { color: var(--accent); cursor: pointer; border-bottom: 1px dashed var(--accent); }
+
   /* Кот — только на пустой главной, после ввода запроса прячется */
   .cat { display: none; }
   body.home .cat { display: block; width: min(240px, 60vw); margin: 0 auto 12px; border-radius: 12px; mix-blend-mode: multiply; }
@@ -199,6 +211,7 @@
   <div class="wrap bar">
     <input id="q" type="search" placeholder="Что описываем?" autofocus autocomplete="off" enterkeyhint="search" aria-label="Поиск">
   </div>
+  <div class="news" id="news" hidden></div>
 </header>
 
 <main class="wrap">
@@ -744,6 +757,33 @@
     if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(() => toast("Скопировано"), fallback);
     else fallback();
   }
+})();
+</script>
+<script>
+/* «Что нового»: читает news.md. Строка «# …» — заголовок, строки «- …» — пункты,
+   [[слово]] — кликабельно: подставляет слово в поиск. */
+(function () {
+  const box = document.getElementById("news");
+  const q = document.getElementById("q");
+  if (!box || location.protocol === "file:") return;
+  const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const line = s => esc(s).replace(/\[\[([^\]]+)\]\]/g, '<span class="try" role="button" tabindex="0" data-q="$1">«$1»</span>');
+  fetch("news.md", { cache: "no-cache" }).then(r => r.ok ? r.text() : "").then(t => {
+    let h = "", items = [];
+    t.replace(/\r/g, "").split("\n").forEach(l => {
+      l = l.trim();
+      if (/^# /.test(l)) h = l.slice(2);
+      else if (/^[-*] /.test(l)) items.push(l.slice(2));
+    });
+    if (!items.length) return;
+    box.innerHTML = (h ? "<h2>" + line(h) + "</h2>" : "") + "<ul>" + items.map(i => "<li>" + line(i) + "</li>").join("") + "</ul>";
+    box.hidden = false;
+    box.querySelectorAll(".try").forEach(el => {
+      const go = () => { q.value = el.dataset.q; q.dispatchEvent(new Event("input")); q.focus(); };
+      el.addEventListener("click", go);
+      el.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+    });
+  }).catch(() => {});
 })();
 </script>
 </body>

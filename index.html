@@ -131,13 +131,14 @@
   .fx-intro { margin: 0 0 10px; color: var(--muted); font-size: 0.85rem; }
   .fx-form { display: flex; flex-direction: column; gap: 8px; }
   .fx-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+  .fx-row[hidden] { display: none; }
   .fx-label { flex: 0 0 210px; color: var(--muted); font-size: 0.85rem; }
   .fx-num { width: 90px; height: 36px; padding: 0 8px; font-size: 16px; border: 1px solid var(--line);
     border-radius: 8px; background: var(--bg); color: var(--ink); }
   .fx-num:focus { outline: 2px solid var(--accent); outline-offset: 0; }
   .fx-opts { display: flex; flex-wrap: wrap; gap: 4px; }
   .fx-opt { min-height: 34px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 8px;
-    background: transparent; color: var(--ink); font-size: 0.85rem; cursor: pointer; }
+    background: transparent; color: var(--ink); font-size: 0.85rem; cursor: pointer; text-align: left; }
   .fx-opt[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
   .fx-calc { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 10px 0 0; font-size: 0.85rem; color: var(--muted); }
   .fx-calc:empty { display: none; }

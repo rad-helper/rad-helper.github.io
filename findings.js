@@ -7,7 +7,11 @@
    Коротко:
      # Параметры   имя: Подпись = число            — поле для числа
                    имя: Подпись = а | б | в        — кнопки, первая выбрана по умолчанию
-     # Расчёты     имя: Подпись = формула           — + − * / ( ) и имена параметров
+                   … ; если risk = нет             — строка видна только при условии;
+                                                    скрытая — как пустая («не знаю»)
+     # Расчёты     имя: Подпись = формула           — + − * / ( ) и имена параметров;
+                                                    [условие] — 1, если выполнено, иначе 0;
+                                                    имя с _ в начале — считается, но не показывается
      # Вывод       - условие → текст                — срабатывает ПЕРВОЕ подходящее сверху
      # Учесть      - условие → текст                — показываются ВСЕ подходящие
      # Диф ряд     - Диагноз | ссылка               — «- ! Диагноз» = не пропустить
@@ -41,10 +45,12 @@ window.RH_FINDINGS = (function () {
       const bad = () => tool.errors.push("строка " + (n + 1) + ": " + t);
 
       if (part === "параметры") {
-        const m = t.match(/^([\wа-яё]+)\s*:\s*(.+?)\s*=\s*(.+)$/i);
+        const when = t.match(/\s*;\s*если\s+(.+)$/i);
+        const line = when ? t.slice(0, when.index) : t;
+        const m = line.match(/^([\wа-яё]+)\s*:\s*(.+?)\s*=\s*(.+)$/i);
         if (!m) return bad();
         const kind = lower(m[3]) === "число" ? "num" : "pick";
-        tool.params.push({ id: m[1], label: m[2], kind,
+        tool.params.push({ id: m[1], label: m[2], kind, when: when ? when[1] : "",
           options: kind === "pick" ? m[3].split("|").map(s => s.trim()) : [] });
       } else if (part === "расчеты") {
         const m = t.match(/^([\wа-яё]+)\s*:\s*(.+?)\s*=\s*(.+)$/i);
@@ -76,13 +82,26 @@ window.RH_FINDINGS = (function () {
   }
 
   /* ---------- Значения и условия ---------- */
-  function values(tool, state) {
+  // какие строки видны: условие «; если …» считается по уже видимым строкам
+  function visible(tool, state) {
+    const shown = {};
+    tool.params.forEach(p => { shown[p.id] = !p.when; });
+    for (let pass = 0; pass < 3; pass++) {
+      const v = values(tool, state, shown, true);
+      tool.params.forEach(p => { if (p.when) shown[p.id] = test(p.when, v); });
+    }
+    return shown;
+  }
+
+  function values(tool, state, shown, noCalc) {
     const v = {};
     tool.params.forEach(p => {
+      if (shown && !shown[p.id]) return;
       const x = state[p.id];
       if (p.kind === "num") { const n = num(x); if (isFinite(n)) v[p.id] = n; }
       else if (x) v[p.id] = x;
     });
+    if (noCalc) return v;
     tool.calcs.forEach(c => {
       const x = evalExpr(c.expr, v);
       if (x !== undefined) v[c.id] = x;
@@ -92,6 +111,8 @@ window.RH_FINDINGS = (function () {
 
   function evalExpr(expr, v) {
     let missing = false;
+    // [условие] → 1 или 0: так считают, сколько признаков есть
+    expr = expr.replace(/\[([^\]]+)\]/g, (_, c) => test(c, v) ? "1" : "0");
     const js = expr.replace(/[a-zа-яё_][\wа-яё]*/gi, name => {
       if (typeof v[name] !== "number") { missing = true; return "0"; }
       return "(" + v[name] + ")";
@@ -132,7 +153,7 @@ window.RH_FINDINGS = (function () {
       (tool.errors.length ? '<p class="err">Не разобраны строки файла: ' + tool.errors.map(esc).join("; ") + "</p>" : "") +
       (tool.intro ? '<p class="fx-intro">' + inline(tool.intro) + "</p>" : "") +
       '<div class="fx-form">' + tool.params.map(p =>
-        '<div class="fx-row"><span class="fx-label">' + esc(p.label) + "</span>" +
+        '<div class="fx-row" data-row="' + esc(p.id) + '"><span class="fx-label">' + esc(p.label) + "</span>" +
         (p.kind === "num"
           ? '<input class="fx-num" type="text" inputmode="decimal" autocomplete="off" data-id="' + esc(p.id) + '" placeholder="—">'
           : '<span class="fx-opts">' + p.options.map((o, i) =>
@@ -146,9 +167,11 @@ window.RH_FINDINGS = (function () {
     const outEl = el.querySelector(".fx-out");
 
     function update() {
-      const v = values(tool, state);
+      const shown = visible(tool, state);
+      el.querySelectorAll(".fx-row").forEach(r => { r.hidden = !shown[r.dataset.row]; });
+      const v = values(tool, state, shown);
 
-      calcEl.innerHTML = tool.calcs.filter(c => v[c.id] !== undefined).map(c =>
+      calcEl.innerHTML = tool.calcs.filter(c => v[c.id] !== undefined && c.id[0] !== "_").map(c =>
         '<span class="fx-val">' + esc(c.label) + ": <b>" + String(Math.round(v[c.id])) + "</b></span>").join("");
 
       const rule = tool.rules.find(r => test(r.cond, v));
@@ -185,5 +208,5 @@ window.RH_FINDINGS = (function () {
     update();
   }
 
-  return { parse, render, test, values };
+  return { parse, render, test, values, visible };
 })();

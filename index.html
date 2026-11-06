@@ -192,15 +192,16 @@
   .news ul { margin: 0; padding-left: 1.1em; }
   .news li { margin: 3px 0; }
   /* на невысоких экранах поднять всё выше, чтобы «Что нового» не залезало под подвал */
-  body.home { padding-bottom: 72px; }
-  @media (max-height: 760px) { body.home header.top { padding-top: 12vh; } }
+  @media (max-height: 900px) { body.home header.top { padding-top: 12vh; } }
   .news .try { color: var(--accent); cursor: pointer; border-bottom: 1px dashed var(--accent); }
 
   /* Кот — только на пустой главной, после ввода запроса прячется */
   .cat { display: none; }
   body.home .cat { display: block; width: min(240px, 60vw); margin: 0 auto 12px; border-radius: 12px; mix-blend-mode: multiply; }
   @media (prefers-color-scheme: dark) { body.home .cat { mix-blend-mode: normal; opacity: .9; } }
-  body.home footer { position: fixed; left: 0; right: 0; bottom: 0; text-align: center; font-size: 0.72rem; }
+  /* подвал главной: внизу экрана, а если текста много — просто ниже, без наложения */
+  body.home { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+  body.home footer { margin-top: auto; width: 100%; text-align: center; font-size: 0.72rem; }
 </style>
 </head>
 <body>

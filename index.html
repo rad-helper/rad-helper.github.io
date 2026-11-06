@@ -462,6 +462,13 @@
       toggle: "остеопороз", pick: x => x <= 110 ? 1 : 0 }
   };
 
+  // Площадь позвоночного канала на уровне диска, мм² (Schönström 1985): > 100 — норма, 75–100 — относительный стеноз, < 75 — абсолютный.
+  // Для каждого уровня — поле [S L4–L5] и калькулятор {{S L4–L5}}; он сам ставит {#стеноз L4–L5: |относительный|абсолютный}.
+  ["L1–L2", "L2–L3", "L3–L4", "L4–L5", "L5–S1"].forEach(lvl => {
+    CALC["S " + lvl] = { inputs: ["S " + lvl], digits: 0, f: s => s,
+      toggle: "стеноз " + lvl, pick: x => x < 75 ? 2 : x <= 100 ? 1 : 0 };
+  });
+
   const INPUT_NAMES = new Set(Object.values(CALC).flatMap(c => c.inputs));
   const num = v => parseFloat(String(v).replace(",", "."));
   const fmt = (x, d) => x.toFixed(d).replace(".", ",");

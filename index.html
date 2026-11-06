@@ -583,6 +583,30 @@
     CALC[t + " " + m + " Л/П"] = { inputs: [l, r], digits: 2, f: (a, b) => a / b };
   }));
 
+  // КТ-перфузия, бассейн СМА: вывод «асимметрия есть / нет» и её описание — по отношениям сторона стеноза / противоположная.
+  // Порог: отношение вне 0,90–1,10 хотя бы по одному параметру (Waaijer 2007: нормальная разница право/лево ± 10%).
+  const r2 = (a, b) => Math.round(a / b * 100) / 100;
+  const off = x => x < 0.9 || x > 1.1;
+  function perfText(cbf, cbv, mtt) {                       // отношения → «снижение CBF (0,78), удлинение MTT (1,29) без значимого изменения CBV»
+    const ch = [], same = [];
+    [["CBF", cbf, "снижение", "повышение"], ["CBV", cbv, "снижение", "повышение"], ["MTT", mtt, "укорочение", "удлинение"]]
+      .forEach(([n, x, down, up]) => off(x) ? ch.push((x < 1 ? down : up) + " " + n + " (" + fmt(x, 2) + ")") : same.push(n));
+    if (!ch.length) return "";
+    return ch.join(", ") + (same.length ? " без значимого изменения " + same.join(" и ") : "");
+  }
+  const SMA = ["СМА CBF П", "СМА CBV П", "СМА MTT П", "СМА CBF Л", "СМА CBV Л", "СМА MTT Л"];
+  const smaRatios = (v, side) => side === 0                 // 0 — стеноз справа (П/Л), 1 — слева (Л/П)
+    ? [r2(v[0], v[3]), r2(v[1], v[4]), r2(v[2], v[5])]
+    : [r2(v[3], v[0]), r2(v[4], v[1]), r2(v[5], v[2])];
+  CALC["СМА КАРТИНА П/Л"] = { inputs: SMA, text: (...v) => perfText(...smaRatios(v, 0)) };
+  CALC["СМА КАРТИНА Л/П"] = { inputs: SMA, text: (...v) => perfText(...smaRatios(v, 1)) };
+  // Невидимый: сам ставит {#СМА: не введено|асимметрии нет|асимметрия}. Пересчитывается и при смене {#сторона: …}.
+  CALC["СМА ВЫВОД"] = { inputs: SMA, hidden: true, uses: ["сторона"],
+    set: (v, tg) => {
+      if (!v.every(x => isFinite(x) && x > 0)) return { "СМА": 0 };
+      return { "СМА": smaRatios(v, tg("сторона")).some(off) ? 2 : 1 };
+    } };
+
   const INPUT_NAMES = new Set(Object.values(CALC).flatMap(c => c.inputs));
   const num = v => parseFloat(String(v).replace(",", "."));
   const fmt = (x, d) => x.toFixed(d).replace(".", ",");
@@ -612,6 +636,11 @@
       calcs.forEach(c => {
         const def = CALC[c.name];
         const vals = def.inputs.map(n => num(named[n] ? named[n][0].value : NaN));
+        if (def.text) {                                            // калькулятор, который пишет текст, а не число
+          c.value = vals.every(x => isFinite(x) && x > 0) ? def.text(...vals) : "";
+          c.el.textContent = c.value || "__";
+          return;
+        }
         const x = vals.every(isFinite) ? def.f(...vals) : NaN;
         c.value = isFinite(x) && x >= 0 ? fmt(x, def.digits) : "";
         c.el.textContent = c.value || "__";
@@ -619,7 +648,19 @@
         const g = def.toggle && toggles["#" + lower(def.toggle)];
         if (g && c.value) { g.i = def.pick(num(c.value)); g.show(); }
       });
+      // невидимые калькуляторы: сами ставят переключатели, если все их поля есть в шаблоне
+      Object.values(CALC).forEach(def => {
+        if (!def.set || !def.inputs.every(n => named[n])) return;
+        const vals = def.inputs.map(n => num(named[n][0].value));
+        const tg = n => { const g = toggles["#" + lower(n)]; return g ? g.i % Math.max(...g.insts.map(x => x.views.length)) : 0; };
+        Object.entries(def.set(vals, tg)).forEach(([n, i]) => {
+          const g = toggles["#" + lower(n)];
+          if (g) { g.i = i; g.show(); }
+        });
+      });
     }
+    // переключатели, от которых зависят невидимые калькуляторы (uses), при нажатии пересчитывают
+    const USED = new Set(Object.values(CALC).flatMap(d => (d.uses || []).map(n => "#" + lower(n))));
     function sizeField(f) { f.style.width = Math.max(3, (f.value || f.placeholder).length + 1) + "ch"; }
 
     function field(inner, target, out) {                          // [поле]
@@ -673,6 +714,7 @@
       const next = () => {
         group.i = (group.i + 1) % Math.max(...group.insts.map(g => g.views.length));
         show();
+        if (USED.has(key)) recalc();
       };
       // клик по вложенному переключателю меняет только его
       wrap.addEventListener("click", e => { if (!e.target.closest("input") && e.target.closest(".tg") === wrap) next(); });

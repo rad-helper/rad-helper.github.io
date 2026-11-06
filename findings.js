@@ -161,7 +161,9 @@ window.RH_FINDINGS = (function () {
               esc(o) + "</button>").join("") + "</span>") +
         "</div>").join("") + "</div>" +
       '<div class="fx-calc"></div><div class="fx-out"></div>' +
-      (tool.src ? '<p class="src">' + inline(tool.src) + "</p>" : "");
+      (tool.src ? '<div class="fx-src"><div class="fx-src-h">Работает строго по источникам</div><ul>' +
+        tool.src.replace(/^Источник:\s*/, "").split(/;\s+(?=[A-ZА-ЯЁ])/).map(x => "<li>" + inline(x.trim()) + "</li>").join("") +
+        "</ul></div>" : "");
 
     const calcEl = el.querySelector(".fx-calc");
     const outEl = el.querySelector(".fx-out");

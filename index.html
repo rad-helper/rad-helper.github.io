@@ -192,6 +192,7 @@
     color: var(--muted); font-size: 0.85rem; line-height: 1.45; }
   .news h2 { margin: 0 0 6px; font-size: 0.78rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
   .news ul { margin: 0; padding-left: 1.1em; }
+  .news ul + h2 { margin-top: 12px; }
   .news li { margin: 3px 0; }
   /* на невысоких экранах поднять всё выше, чтобы «Что нового» не залезало под подвал */
   @media (max-height: 900px) { body.home header.top { padding-top: 12vh; } }
@@ -815,7 +816,7 @@
 })();
 </script>
 <script>
-/* «Что нового»: читает news.md. Строка «# …» — заголовок, строки «- …» — пункты,
+/* «Что нового»: читает news.md. Строка «# …» — заголовок группы (дата), строки «- …» — пункты под ней,
    [[слово]] — кликабельно: подставляет слово в поиск. */
 (function () {
   const box = document.getElementById("news");
@@ -824,14 +825,20 @@
   const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const line = s => esc(s).replace(/\[\[([^\]]+)\]\]/g, '<span class="try" role="button" tabindex="0" data-q="$1">«$1»</span>');
   fetch("news.md", { cache: "no-cache" }).then(r => r.ok ? r.text() : "").then(t => {
-    let h = "", items = [];
+    // Каждая строка «# …» открывает новую группу (дату), пункты идут под ней.
+    const groups = [];
     t.replace(/\r/g, "").split("\n").forEach(l => {
       l = l.trim();
-      if (/^# /.test(l)) h = l.slice(2);
-      else if (/^[-*] /.test(l)) items.push(l.slice(2));
+      if (/^# /.test(l)) groups.push({ h: l.slice(2), items: [] });
+      else if (/^[-*] /.test(l)) {
+        if (!groups.length) groups.push({ h: "", items: [] });
+        groups[groups.length - 1].items.push(l.slice(2));
+      }
     });
-    if (!items.length) return;
-    box.innerHTML = (h ? "<h2>" + line(h) + "</h2>" : "") + "<ul>" + items.map(i => "<li>" + line(i) + "</li>").join("") + "</ul>";
+    const full = groups.filter(g => g.items.length);
+    if (!full.length) return;
+    box.innerHTML = full.map(g => (g.h ? "<h2>" + line(g.h) + "</h2>" : "") +
+      "<ul>" + g.items.map(i => "<li>" + line(i) + "</li>").join("") + "</ul>").join("");
     box.hidden = false;
     box.querySelectorAll(".try").forEach(el => {
       const go = () => { q.value = el.dataset.q; q.dispatchEvent(new Event("input")); q.focus(); };
